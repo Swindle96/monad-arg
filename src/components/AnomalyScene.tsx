@@ -213,6 +213,7 @@ export default function AnomalyScene({ className = "" }: AnomalySceneProps) {
     logoGroup.add(glowRing);
     logoGroup.add(glowRing2);
     logoGroup.position.set(0, 0, 2);
+    logoGroup.rotation.z = Math.PI / 4;
     scene.add(logoGroup);
 
     /* ── Pointer tracking ────────────────────────────────────── */
@@ -280,7 +281,7 @@ export default function AnomalyScene({ className = "" }: AnomalySceneProps) {
       /* monad logo — slow coin-flip + float + parallax */
       logoGroup.rotation.y = Math.sin(t * 0.38) * 0.55 + pointer.x * 0.28;
       logoGroup.rotation.x = Math.cos(t * 0.27) * 0.09 + pointer.y * 0.14;
-      logoGroup.rotation.z = Math.sin(t * 0.19) * 0.04;
+      logoGroup.rotation.z = Math.PI / 4 + Math.sin(t * 0.19) * 0.04;
       logoGroup.position.y = Math.sin(t * 0.62) * 0.2;
       logoMat.emissiveIntensity = 0.35 + pulse * 0.35;
       glowMat.opacity  = 0.38 + pulse * 0.28;
