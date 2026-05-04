@@ -3,6 +3,7 @@ import { Inter, Roboto_Mono, Syne } from "next/font/google";
 import "./globals.css";
 import Providers from "./providers";
 import Navbar from "@/components/Navbar";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 const syne = Syne({
   weight: ["400", "500", "600", "700", "800"],
@@ -58,10 +59,12 @@ export default function RootLayout({
         <a href="#main-content" className="skip-link">Skip to content</a>
 
         <Providers>
-          <Navbar />
-          <main id="main-content">
-            {children}
-          </main>
+          <ErrorBoundary>
+            <Navbar />
+            <main id="main-content">
+              {children}
+            </main>
+          </ErrorBoundary>
         </Providers>
       </body>
     </html>

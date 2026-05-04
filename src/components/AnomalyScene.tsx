@@ -1,16 +1,19 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 
 type AnomalySceneProps = { className?: string };
 
 export default function AnomalyScene({ className = "" }: AnomalySceneProps) {
   const mountRef = useRef<HTMLDivElement>(null);
+  const [sceneError, setSceneError] = useState(false);
 
   useEffect(() => {
     const mount = mountRef.current;
     if (!mount) return;
+
+    try {
 
     /* ── Renderer ────────────────────────────────────────────── */
     const renderer = new THREE.WebGLRenderer({
@@ -220,6 +223,7 @@ export default function AnomalyScene({ className = "" }: AnomalySceneProps) {
     const pointer = { x: 0, y: 0, tx: 0, ty: 0 };
     const onPointerMove = (e: PointerEvent) => {
       const rect = mount.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) return;
       pointer.tx = ((e.clientX - rect.left) / rect.width  - 0.5) * 2;
       pointer.ty = -((e.clientY - rect.top)  / rect.height - 0.5) * 2;
     };
@@ -306,7 +310,15 @@ export default function AnomalyScene({ className = "" }: AnomalySceneProps) {
       });
       renderer.dispose();
     };
+    } catch (e) {
+      console.error("[AnomalyScene]", e);
+      setSceneError(true);
+    }
   }, []);
+
+  if (sceneError) {
+    return <div className={`absolute inset-0 ${className}`} style={{ background: "radial-gradient(ellipse at 50% 40%, rgba(110,84,255,0.12), transparent 70%)" }} aria-hidden="true" />;
+  }
 
   return (
     <div

@@ -7,7 +7,7 @@ import PlayerRegistryABI from './abi/PlayerRegistry.json'
 // Missing vars cause a clear error instead of a silent undefined address.
 function requireEnv(name: string, val: string | undefined): `0x${string}` {
   if (!val) throw new Error(`Missing required env var: ${name}`)
-  if (!val.startsWith('0x')) throw new Error(`Env var ${name} must start with 0x`)
+  if (!/^0x[a-fA-F0-9]{40}$/.test(val)) throw new Error(`Env var ${name} must be a valid Ethereum address (0x + 40 hex chars)`)
   return val as `0x${string}`
 }
 

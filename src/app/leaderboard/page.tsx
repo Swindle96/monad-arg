@@ -27,17 +27,17 @@ function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
   function handle(e: React.MouseEvent) {
     e.preventDefault();
-    navigator.clipboard.writeText(text).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    });
+    navigator.clipboard.writeText(text)
+      .then(() => { setCopied(true); setTimeout(() => setCopied(false), 1500); })
+      .catch(() => { setCopied(false); });
   }
   return (
     <button
       onClick={handle}
       className="p-1 min-h-[44px] min-w-[44px] flex items-center justify-center transition-colors duration-200 cursor-pointer"
       style={{ color: "var(--text-dim)" }}
-      aria-label="Copy address"
+      aria-label={copied ? "Address copied" : "Copy address"}
+      aria-live="polite"
       onMouseEnter={e => (e.currentTarget.style.color = "#6E54FF")}
       onMouseLeave={e => (e.currentTarget.style.color = "var(--text-dim)")}
     >
@@ -67,17 +67,17 @@ function SkeletonRow() {
 }
 
 export default function LeaderboardPage() {
-  const { data: rawLeaderboard, isLoading: lbLoading } = useReadContract({
+  const { data: rawLeaderboard, isLoading: lbLoading, isError: lbError } = useReadContract({
     address: REGISTRY_ADDRESS, abi: playerRegistryAbi, functionName: "getLeaderboard",
-    query: { refetchInterval: 10_000 },
+    query: { refetchInterval: 30_000, staleTime: 15_000 },
   });
   const { data: rawPlayerCount, isLoading: playerCountLoading } = useReadContract({
     address: REGISTRY_ADDRESS, abi: playerRegistryAbi, functionName: "getPlayerCount",
-    query: { refetchInterval: 10_000 },
+    query: { refetchInterval: 30_000, staleTime: 15_000 },
   });
-  const { data: rawSeasonInfo, isLoading: seasonLoading } = useReadContract({
+  const { data: rawSeasonInfo, isLoading: seasonLoading, isError: seasonError } = useReadContract({
     address: GAME_ADDRESS, abi: argGameAbi, functionName: "getSeasonInfo",
-    query: { refetchInterval: 10_000 },
+    query: { refetchInterval: 30_000, staleTime: 15_000 },
   });
 
   const leaderboard = useMemo(() => {
@@ -184,7 +184,16 @@ export default function LeaderboardPage() {
         <div className="rift-line mb-6" />
 
         {/* ── LOADING STATE ──────────────────────────────────────── */}
-        {(lbLoading || leaderboard === null) ? (
+        {lbError ? (
+          <div className="rift-panel px-5 py-16 text-center" style={{ borderRadius: 2 }}>
+            <p style={{ ...mono, fontSize: "0.72rem", letterSpacing: "0.22em", color: "#FF8EE4", marginBottom: 8 }}>
+              RPC ERROR
+            </p>
+            <p style={{ ...mono, fontSize: "0.68rem", letterSpacing: "0.16em", color: "var(--text-dim)" }}>
+              Could not reach contract — check RPC connection.
+            </p>
+          </div>
+        ) : (lbLoading || leaderboard === null) ? (
           <div className="rift-panel" style={{ borderRadius: 2 }}>
             {Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} />)}
           </div>
@@ -350,7 +359,7 @@ export default function LeaderboardPage() {
           className="mt-8 text-center"
           style={{ ...mono, fontSize: "0.65rem", letterSpacing: "0.2em", color: "var(--text-dim)" }}
         >
-          LIVE ON-CHAIN · {seasonName.toUpperCase()} · MONAD TESTNET · REFRESHES EVERY 10S
+          LIVE ON-CHAIN · {seasonError ? "—" : seasonName.toUpperCase()} · MONAD TESTNET · REFRESHES EVERY 30S
         </p>
       </div>
     </div>

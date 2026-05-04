@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { keccak256, toHex, padHex, encodePacked } from "viem";
 import {
@@ -36,7 +36,14 @@ function loadCommit(): CommitData | null {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
     const p = JSON.parse(raw);
-    return { ...p, commitBlock: BigInt(p.commitBlock) };
+    if (!p || typeof p.puzzleId !== "string" || typeof p.answerHex !== "string" ||
+        typeof p.nonce !== "string" || p.commitBlock == null) return null;
+    return {
+      puzzleId:    p.puzzleId,
+      answerHex:   p.answerHex as `0x${string}`,
+      nonce:       p.nonce as `0x${string}`,
+      commitBlock: BigInt(p.commitBlock),
+    };
   } catch { return null; }
 }
 function clearCommit() { localStorage.removeItem(STORAGE_KEY); }
@@ -137,15 +144,15 @@ export default function PlayPage() {
 
   const { data: rawPuzzle, isLoading: puzzleLoading, isError: puzzleError } = useReadContract({
     address: CONTRACT_ADDRESS, abi: puzzleChainAbi, functionName: "getCurrentPuzzle",
-    query: { refetchInterval: 10_000 },
+    query: { refetchInterval: 30_000, staleTime: 15_000 },
   });
   const { data: rawCount }    = useReadContract({
     address: CONTRACT_ADDRESS, abi: puzzleChainAbi, functionName: "puzzleCount",
-    query: { refetchInterval: 10_000 },
+    query: { refetchInterval: 30_000, staleTime: 15_000 },
   });
   const { data: rawPuzzleId } = useReadContract({
     address: CONTRACT_ADDRESS, abi: puzzleChainAbi, functionName: "currentPuzzleId",
-    query: { refetchInterval: 10_000 },
+    query: { refetchInterval: 30_000, staleTime: 15_000 },
   });
 
   const puzzle            = rawPuzzle as PuzzleResult | undefined;
@@ -189,13 +196,28 @@ export default function PlayPage() {
       setPending(null);
       refetchOnChainCommit();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isCommitConfirmed]);
+  }, [isCommitConfirmed, pendingCommit, refetchOnChainCommit]);
+
+  /* Reset if wallet never responds within 2 minutes */
+  useEffect(() => {
+    if (!isCommitPending) return;
+    const t = setTimeout(() => { resetCommit(); setPending(null); }, 120_000);
+    return () => clearTimeout(t);
+  }, [isCommitPending, resetCommit]);
+
+  useEffect(() => {
+    if (!isRevealPending) return;
+    const t = setTimeout(() => { resetReveal(); }, 120_000);
+    return () => clearTimeout(t);
+  }, [isRevealPending, resetReveal]);
 
   /* Use real on-chain commitBlock when available; fall back to local estimate */
   const effectiveCommitBlock = onChainCommitBlock ?? commit?.commitBlock ?? 0n;
-  const blocksUntilReveal = commit && currentBlock !== undefined
-    ? effectiveCommitBlock + COMMIT_BLOCKS - currentBlock : 0n;
+  const blocksUntilReveal = useMemo(() => {
+    if (!commit || currentBlock === undefined) return 0n;
+    const raw = effectiveCommitBlock + COMMIT_BLOCKS - currentBlock;
+    return raw > 0n ? raw : 0n;
+  }, [commit, currentBlock, effectiveCommitBlock]);
   const canReveal = commit !== null && blocksUntilReveal <= 0n && !isRevealSuccess;
 
   function encodeAnswer(raw: string): `0x${string}` | null {
@@ -210,7 +232,7 @@ export default function PlayPage() {
 
   function handleCommit(e: React.FormEvent) {
     e.preventDefault();
-    if (!userAddress) return;
+    if (!userAddress || !isConnected) return;
     const answerHex = encodeAnswer(answer);
     if (!answerHex || currentPuzzleId === undefined) return;
     const nonceBytes = crypto.getRandomValues(new Uint8Array(32));
@@ -223,8 +245,7 @@ export default function PlayPage() {
     setPending(data);
   }
 
-  function handleReveal(e: React.FormEvent) {
-    e.preventDefault();
+  function doReveal() {
     if (!commit) return;
     writeReveal({ address: CONTRACT_ADDRESS, abi: puzzleChainAbi, functionName: "revealAnswer", args: [commit.answerHex, commit.nonce] });
   }
@@ -526,7 +547,7 @@ export default function PlayPage() {
                         </div>
                         <button
                           type="button"
-                          onClick={handleReveal as unknown as React.MouseEventHandler}
+                          onClick={doReveal}
                           disabled={!canReveal || isRevealPending || isRevealConfirming}
                           className="rift-btn"
                           style={{ justifyContent: "center" }}

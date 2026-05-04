@@ -44,7 +44,8 @@ function decodeInput(input: `0x${string}`): { display: string; decoded: boolean 
   try {
     const bytes = hexToBytes(input);
     const text  = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
-    return { display: sanitizeToAscii(text).slice(0, 40), decoded: true };
+    const sanitized = sanitizeToAscii(text).replace(/[<>&"']/g, "?").slice(0, 40);
+    return { display: sanitized, decoded: true };
   } catch {
     return { display: input.slice(0, 42), decoded: false };
   }
