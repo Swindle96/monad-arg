@@ -2,26 +2,383 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─── Monad Official Brand Palette ──────────────────────────── */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg:             #0E091C;
+  --bg-deep:        #07040f;
+  --bg-section:     #0b0716;
+
+  /* Primary */
+  --purple:         #6E54FF;
+  --purple-light:   #DDD7FE;
+  --purple-dim:     rgba(110, 84, 255, 0.15);
+  --purple-glow:    rgba(110, 84, 255, 0.40);
+
+  /* Accents */
+  --cyan:           #85E6FF;
+  --cyan-dim:       rgba(133, 230, 255, 0.12);
+  --pink:           #FF8EE4;
+  --orange:         #FFAE45;
+
+  /* Text */
+  --text:           #EDE9FF;
+  --text-muted:     #A89EC9;
+  --text-dim:       #6B6285;
+
+  /* Borders */
+  --border:         rgba(110, 84, 255, 0.28);
+  --border-bright:  rgba(110, 84, 255, 0.55);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+/* ─── Base ───────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  color: var(--text);
+  background: var(--bg-deep);
+  min-height: 100vh;
+  font-family: var(--font-inter), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
 }
 
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
+/* ─── Ambient background (fixed to viewport) ─────────────────── */
+.rift-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 65% 55% at 15% 10%,  rgba(110, 84, 255, 0.18) 0%, transparent 70%),
+    radial-gradient(ellipse 55% 45% at 85% 18%,  rgba(133, 230, 255, 0.09) 0%, transparent 65%),
+    radial-gradient(ellipse 45% 55% at 50% 100%, rgba(255, 142, 228, 0.07) 0%, transparent 65%),
+    #07040f;
+}
+
+/* Grid overlay (fixed) */
+.rift-grid {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg,  rgba(110,84,255,0.05) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(110,84,255,0.05) 1px, transparent 1px);
+  background-size: 60px 60px;
+  mask-image: linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, transparent 75%);
+  -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, transparent 75%);
+}
+
+/* Scanlines overlay */
+.scanlines::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  background-image: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 3px,
+    rgba(110, 84, 255, 0.018) 3px,
+    rgba(110, 84, 255, 0.018) 4px
+  );
+}
+
+/* ─── Panels ─────────────────────────────────────────────────── */
+.rift-panel {
+  background: rgba(28, 18, 52, 0.88);
+  border: 1px solid var(--border);
+  box-shadow:
+    0 0 0 1px rgba(110, 84, 255, 0.08) inset,
+    0 16px 60px rgba(0, 0, 0, 0.5);
+}
+
+.rift-panel-hot {
+  background: rgba(34, 22, 62, 0.94);
+  border: 1px solid var(--border-bright);
+  box-shadow:
+    0 0 0 1px rgba(110, 84, 255, 0.14) inset,
+    0 0 48px rgba(110, 84, 255, 0.14),
+    0 24px 72px rgba(0, 0, 0, 0.6);
+}
+
+/* Animated gradient border — safe, no mask-composite needed */
+.rift-glow-border {
+  position: relative;
+  overflow: hidden;
+}
+.rift-glow-border::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg,
+    var(--purple) 0%,
+    var(--cyan) 40%,
+    var(--pink) 70%,
+    var(--purple) 100%
+  );
+  background-size: 300% 300%;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: destination-out;
+  mask-composite: exclude;
+  animation: border-shift 6s linear infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+.rift-glow-border > * { position: relative; z-index: 1; }
+
+/* ─── Buttons ────────────────────────────────────────────────── */
+.rift-btn {
+  position: relative;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid var(--purple);
+  background: var(--purple);
+  color: #fff;
+  font-family: var(--font-roboto-mono), monospace;
+  font-weight: 700;
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: transform 150ms ease, box-shadow 150ms ease, filter 150ms ease;
+  text-decoration: none;
+}
+.rift-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 28px var(--purple-glow), 0 8px 28px rgba(110,84,255,0.3);
+  filter: brightness(1.1);
+}
+.rift-btn:active  { transform: translateY(0); }
+.rift-btn:disabled,
+.rift-btn[disabled] { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+.rift-btn-ghost {
+  position: relative;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid var(--border-bright);
+  background: var(--purple-dim);
+  color: var(--purple-light);
+  font-family: var(--font-roboto-mono), monospace;
+  font-weight: 700;
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 160ms ease;
+  text-decoration: none;
+}
+.rift-btn-ghost:hover {
+  border-color: var(--cyan);
+  background: var(--cyan-dim);
+  color: var(--cyan);
+  box-shadow: 0 0 20px rgba(133,230,255,0.15);
+  transform: translateY(-2px);
+}
+.rift-btn-ghost:disabled,
+.rift-btn-ghost[disabled] { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+/* ─── Typography ─────────────────────────────────────────────── */
+.rift-kicker {
+  font-family: var(--font-roboto-mono), monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--purple);
+}
+
+.rift-title {
+  font-family: var(--font-syne), sans-serif;
+  font-weight: 800;
+  text-transform: uppercase;
+  line-height: 0.9;
+  color: var(--text);
+}
+
+/* 3D depth title with chromatic aberration */
+.rift-title-3d {
+  font-family: var(--font-syne), sans-serif;
+  font-weight: 800;
+  text-transform: uppercase;
+  line-height: 0.9;
+  color: var(--text);
+  text-shadow:
+    0   0  32px rgba(110, 84, 255, 0.5),
+    4px 0   0   rgba(133, 230, 255, 0.4),
+   -4px 0   0   rgba(255, 142, 228, 0.4),
+    0   0  64px rgba(110, 84, 255, 0.18);
+}
+
+/* ─── Divider ────────────────────────────────────────────────── */
+.rift-line {
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    var(--purple) 25%,
+    var(--cyan)   50%,
+    var(--pink)   75%,
+    transparent 100%
+  );
+  box-shadow: 0 0 12px rgba(110,84,255,0.5);
+}
+
+/* ─── Bento cards ───────────────────────────────────────────── */
+.rift-panel {
+  transition: transform 200ms ease, box-shadow 200ms ease;
+}
+.rift-panel:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 0 0 1px rgba(110, 84, 255, 0.14) inset,
+    0 20px 70px rgba(0, 0, 0, 0.55),
+    0 0 40px rgba(110, 84, 255, 0.06);
+}
+
+/* ─── Canvas ─────────────────────────────────────────────────── */
+.rift-canvas canvas {
+  width:   100% !important;
+  height:  100% !important;
+  display: block;
+}
+
+/* ─── Scrollbar ──────────────────────────────────────────────── */
+::-webkit-scrollbar          { width: 3px; height: 3px; }
+::-webkit-scrollbar-track    { background: transparent; }
+::-webkit-scrollbar-thumb    { background: rgba(110,84,255,0.35); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: var(--purple); }
+
+/* ─── Focus ──────────────────────────────────────────────────── */
+:focus-visible { outline: 2px solid var(--purple); outline-offset: 3px; }
+
+/* ─── Skip link ──────────────────────────────────────────────── */
+.skip-link {
+  position: absolute; top: -40px; left: 8px; z-index: 9999;
+  padding: 8px 16px; background: var(--purple); color: #fff;
+  font-size: 12px; font-weight: 700; letter-spacing: 0.1em;
+  text-decoration: none; transition: top 0.2s;
+}
+.skip-link:focus { top: 8px; }
+
+/* ─── Utilities ──────────────────────────────────────────────── */
+.tabular-nums { font-variant-numeric: tabular-nums; }
+.text-balance  { text-wrap: balance; }
+.cursor-blink  { animation: cursor-blink 1s step-end infinite; }
+
+/* ═══════════════════════════════════════════════════════════════
+   KEYFRAMES
+═══════════════════════════════════════════════════════════════ */
+
+/* Rotating border gradient */
+@keyframes border-shift {
+  0%   { background-position: 0%   50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0%   50%; }
+}
+
+/* Cursor blink */
+@keyframes cursor-blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+
+/* Confetti fall */
+@keyframes confetti-fall {
+  0%   { transform: translateY(-20px) rotate(0deg);   opacity: 1; }
+  100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+}
+
+/* Glitch chromatic layers */
+@keyframes glitch-r {
+  0%,100% { clip-path: inset(30% 0 50% 0); transform: translate( 4px, 0); }
+  25%      { clip-path: inset(10% 0 70% 0); transform: translate(-4px, 0); }
+  50%      { clip-path: inset(55% 0 25% 0); transform: translate( 3px, 1px); }
+  75%      { clip-path: inset( 5% 0 80% 0); transform: translate(-3px, 0); }
+}
+@keyframes glitch-b {
+  0%,100% { clip-path: inset(60% 0 20% 0); transform: translate(-4px, 0); }
+  33%     { clip-path: inset(75% 0  5% 0); transform: translate( 4px, 0); }
+  66%     { clip-path: inset(20% 0 65% 0); transform: translate(-2px, 1px); }
+}
+@keyframes glitch-flicker {
+  0%,19%,21%,23%,25%,54%,56%,100% { opacity: 0.22; }
+  20%,24%,55%                      { opacity: 0.06; }
+}
+.glitch-r {
+  animation: glitch-r 3.2s infinite steps(1), glitch-flicker 5s infinite;
+}
+.glitch-b {
+  animation: glitch-b 2.6s infinite steps(1), glitch-flicker 4s infinite 1.1s;
+}
+
+/* Spin slow */
+@keyframes spin-slow { to { transform: rotate(360deg); } }
+.spin-slow { animation: spin-slow 12s linear infinite; }
+
+/* Neon pulse */
+@keyframes neon-pulse {
+  0%,100% { opacity: 1; }
+  50%     { opacity: 0.55; }
+}
+.neon-pulse { animation: neon-pulse 2.6s ease-in-out infinite; }
+
+/* Shimmer text */
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
+}
+.shimmer-text {
+  background: linear-gradient(
+    90deg,
+    var(--purple-light) 0%,
+    var(--cyan)          30%,
+    var(--pink)          50%,
+    var(--cyan)          70%,
+    var(--purple-light) 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shimmer 4s linear infinite;
+}
+
+/* Float */
+@keyframes float-y {
+  0%,100% { transform: translateY(0); }
+  50%     { transform: translateY(-10px); }
+}
+.float-anim { animation: float-y 6s ease-in-out infinite; }
+
+/* Reveal up */
+@keyframes reveal-up {
+  from { opacity: 0; transform: translateY(28px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.reveal-up   { animation: reveal-up 0.65s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.reveal-up-1 { animation-delay: 0.12s; }
+.reveal-up-2 { animation-delay: 0.24s; }
+.reveal-up-3 { animation-delay: 0.36s; }
+.reveal-up-4 { animation-delay: 0.48s; }
+
+/* ─── Motion safety ──────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

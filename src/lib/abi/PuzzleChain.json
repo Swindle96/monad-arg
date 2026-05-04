@@ -1,0 +1,225 @@
+[
+  { "type": "constructor", "inputs": [], "stateMutability": "nonpayable" },
+  {
+    "type": "function",
+    "name": "COMMIT_BLOCKS",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "acceptOwnership",
+    "inputs": [],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "addPuzzle",
+    "inputs": [
+      { "name": "description", "type": "string",  "internalType": "string"  },
+      { "name": "answerHash",  "type": "bytes32", "internalType": "bytes32" }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "commitAnswer",
+    "inputs": [{ "name": "commitment", "type": "bytes32", "internalType": "bytes32" }],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "commits",
+    "inputs": [{ "name": "", "type": "address", "internalType": "address" }],
+    "outputs": [
+      { "name": "commitment",  "type": "bytes32", "internalType": "bytes32" },
+      { "name": "commitBlock", "type": "uint256", "internalType": "uint256" },
+      { "name": "puzzleId",   "type": "uint256", "internalType": "uint256" },
+      { "name": "revealed",   "type": "bool",    "internalType": "bool"    }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "currentPuzzleId",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "gameComplete",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "bool", "internalType": "bool" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getCurrentPuzzle",
+    "inputs": [],
+    "outputs": [
+      { "name": "id",           "type": "uint256", "internalType": "uint256" },
+      { "name": "answerHash",   "type": "bytes32", "internalType": "bytes32" },
+      { "name": "description",  "type": "string",  "internalType": "string"  },
+      { "name": "solved",       "type": "bool",    "internalType": "bool"    },
+      { "name": "solver",       "type": "address", "internalType": "address" },
+      { "name": "solvedAtBlock","type": "uint256", "internalType": "uint256" }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getPuzzle",
+    "inputs": [{ "name": "id", "type": "uint256", "internalType": "uint256" }],
+    "outputs": [
+      { "name": "answerHash",   "type": "bytes32", "internalType": "bytes32" },
+      { "name": "description",  "type": "string",  "internalType": "string"  },
+      { "name": "solved",       "type": "bool",    "internalType": "bool"    },
+      { "name": "solver",       "type": "address", "internalType": "address" },
+      { "name": "solvedAtBlock","type": "uint256", "internalType": "uint256" }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "hasSolved",
+    "inputs": [
+      { "name": "", "type": "uint256", "internalType": "uint256" },
+      { "name": "", "type": "address", "internalType": "address" }
+    ],
+    "outputs": [{ "name": "", "type": "bool", "internalType": "bool" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "owner",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "address", "internalType": "address" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "pendingOwner",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "address", "internalType": "address" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "playerRegistry",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "address", "internalType": "address" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "puzzleCount",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "revealAnswer",
+    "inputs": [
+      { "name": "answer", "type": "bytes32", "internalType": "bytes32" },
+      { "name": "nonce",  "type": "bytes32", "internalType": "bytes32" }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setPlayerRegistry",
+    "inputs": [{ "name": "registry", "type": "address", "internalType": "address" }],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "transferOwnership",
+    "inputs": [{ "name": "newOwner", "type": "address", "internalType": "address" }],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "event",
+    "name": "AnswerCommitted",
+    "inputs": [
+      { "name": "puzzleId",    "type": "uint256", "indexed": true,  "internalType": "uint256" },
+      { "name": "player",      "type": "address", "indexed": true,  "internalType": "address" },
+      { "name": "commitBlock", "type": "uint256", "indexed": false, "internalType": "uint256" }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "GameComplete",
+    "inputs": [
+      { "name": "lastSolver",  "type": "address", "indexed": true,  "internalType": "address" },
+      { "name": "blockNumber", "type": "uint256", "indexed": false, "internalType": "uint256" }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "OwnershipTransferStarted",
+    "inputs": [
+      { "name": "current", "type": "address", "indexed": true, "internalType": "address" },
+      { "name": "pending", "type": "address", "indexed": true, "internalType": "address" }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "OwnershipTransferred",
+    "inputs": [
+      { "name": "previous",  "type": "address", "indexed": true, "internalType": "address" },
+      { "name": "newOwner",  "type": "address", "indexed": true, "internalType": "address" }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "PlayerRegistrySet",
+    "inputs": [
+      { "name": "registry", "type": "address", "indexed": true, "internalType": "address" }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "PuzzleAdded",
+    "inputs": [
+      { "name": "id",          "type": "uint256", "indexed": true,  "internalType": "uint256" },
+      { "name": "description", "type": "string",  "indexed": false, "internalType": "string"  }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "PuzzleSolved",
+    "inputs": [
+      { "name": "id",          "type": "uint256", "indexed": true,  "internalType": "uint256" },
+      { "name": "solver",      "type": "address", "indexed": true,  "internalType": "address" },
+      { "name": "blockNumber", "type": "uint256", "indexed": false, "internalType": "uint256" }
+    ],
+    "anonymous": false
+  },
+  { "type": "error", "name": "AlreadyRevealed",       "inputs": [] },
+  { "type": "error", "name": "AlreadySolved",          "inputs": [] },
+  { "type": "error", "name": "AlreadySolvedByPlayer",  "inputs": [] },
+  { "type": "error", "name": "CommitForWrongPuzzle",   "inputs": [] },
+  { "type": "error", "name": "InvalidCommitment",      "inputs": [] },
+  { "type": "error", "name": "NoCommitFound",          "inputs": [] },
+  { "type": "error", "name": "NoPuzzleAvailable",      "inputs": [] },
+  { "type": "error", "name": "NotOwner",               "inputs": [] },
+  { "type": "error", "name": "NotPendingOwner",        "inputs": [] },
+  { "type": "error", "name": "PuzzleDoesNotExist",     "inputs": [] },
+  { "type": "error", "name": "TooEarlyToReveal",       "inputs": [] },
+  { "type": "error", "name": "WrongAnswer",            "inputs": [] }
+]
