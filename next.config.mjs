@@ -3,11 +3,11 @@ const nextConfig = {
   webpack(config) {
     config.resolve.fallback = {
       ...config.resolve.fallback,
-      "pino-pretty": false,
-      "@react-native-async-storage/async-storage": false,
-      "fs": false,
-      "net": false,
-      "tls": false,
+      "pino-pretty": false,                            // not needed in browser (wagmi peer dep)
+      "@react-native-async-storage/async-storage": false, // browser has native localStorage
+      "fs": false,                                     // server-only Node API
+      "net": false,                                    // server-only Node API
+      "tls": false,                                    // server-only Node API
     };
     return config;
   },

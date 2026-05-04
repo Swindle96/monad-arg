@@ -71,7 +71,7 @@ export default function AnomalyScene({ className = "" }: AnomalySceneProps) {
     orbGroup.add(orbWire);
 
     /* ── Particle field ──────────────────────────────────────── */
-    const N = 1600;
+    const N = window.devicePixelRatio > 1 ? 900 : 1600;
     const pGeo = new THREE.BufferGeometry();
     const pos  = new Float32Array(N * 3);
     const col  = new Float32Array(N * 3);

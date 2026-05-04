@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPublicClient, http } from "viem";
 import { hexToBytes } from "viem/utils";
 import { monadTestnet } from "@/lib/wagmi";
@@ -82,10 +82,12 @@ export default function ExplorePage() {
         if (!Array.isArray(block.transactions) || block.transactions.length === 0) return;
         type RawTx = { hash: `0x${string}`; from: `0x${string}`; to: `0x${string}` | null; input: `0x${string}` };
         const raw = block.transactions as unknown as RawTx[];
-        const entries: TxEntry[] = raw.map((tx, i) => ({
-          key: `${tx.hash}-${i}`, blockNumber: block.number ?? 0n,
-          hash: tx.hash, from: tx.from, to: tx.to ?? null, input: tx.input,
-        }));
+        const entries: TxEntry[] = raw
+          .filter((tx) => tx && typeof tx.hash === "string" && typeof tx.from === "string" && typeof tx.input === "string")
+          .map((tx, i) => ({
+            key: `${tx.hash}-${i}`, blockNumber: block.number ?? 0n,
+            hash: tx.hash, from: tx.from, to: tx.to ?? null, input: tx.input,
+          }));
         setTxs(prev => [...prev, ...entries].slice(-MAX_TXS));
       },
       onError() {
@@ -117,8 +119,10 @@ export default function ExplorePage() {
     shouldScroll.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
   }
 
-  const displayed = filterARG ? txs.filter(tx => getArgLabel(tx.to) !== null) : txs;
-  const argCount  = txs.filter(tx => getArgLabel(tx.to) !== null).length;
+  const { displayed, argCount } = useMemo(() => {
+    const argTxs = txs.filter(tx => getArgLabel(tx.to) !== null);
+    return { displayed: filterARG ? argTxs : txs, argCount: argTxs.length };
+  }, [txs, filterARG]);
 
   const statusColor =
     status === "live"  ? "#85E6FF" :

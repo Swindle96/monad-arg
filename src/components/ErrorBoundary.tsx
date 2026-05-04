@@ -2,7 +2,11 @@
 
 import { Component, ReactNode } from "react";
 
-interface Props { children: ReactNode; fallback?: ReactNode; }
+interface Props {
+  children: ReactNode;
+  fallback?: ReactNode;
+  onError?: (error: Error) => void;
+}
 interface State { hasError: boolean; }
 
 export default class ErrorBoundary extends Component<Props, State> {
@@ -10,7 +14,10 @@ export default class ErrorBoundary extends Component<Props, State> {
 
   static getDerivedStateFromError(): State { return { hasError: true }; }
 
-  componentDidCatch(error: Error) { console.error("[ErrorBoundary]", error); }
+  componentDidCatch(error: Error) {
+    console.error("[ErrorBoundary]", error);
+    this.props.onError?.(error);
+  }
 
   render() {
     if (this.state.hasError) {

@@ -7,6 +7,7 @@ import {
   useWriteContract,
   useWaitForTransactionReceipt,
   useReadContract,
+  useReadContracts,
   useAccount,
   useBlockNumber,
 } from "wagmi";
@@ -26,10 +27,15 @@ interface CommitData {
   commitBlock: bigint;
 }
 
-const STORAGE_KEY = "chain_detective_commit";
+const STORAGE_KEY      = "chain_detective_commit";
+const WALLET_TIMEOUT_MS = 120_000;
 
 function saveCommit(d: CommitData) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...d, commitBlock: d.commitBlock.toString() }));
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...d, commitBlock: d.commitBlock.toString() }));
+  } catch (e) {
+    console.warn("[saveCommit] localStorage write failed:", e);
+  }
 }
 function loadCommit(): CommitData | null {
   try {
@@ -60,7 +66,8 @@ function friendlyError(msg: string): string {
   if (msg.includes("InvalidCommitment"))     return "Commitment doesn't match — re-commit your answer.";
   if (msg.includes("User rejected"))         return "Transaction cancelled.";
   if (msg.includes("insufficient funds"))    return "Not enough MON for gas.";
-  return msg.split("\n")[0].slice(0, 120);
+  return msg.split("\n")[0].slice(0, 120)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
 function Spinner() {
@@ -142,18 +149,19 @@ export default function PlayPage() {
 
   const { data: currentBlock } = useBlockNumber({ watch: true });
 
-  const { data: rawPuzzle, isLoading: puzzleLoading, isError: puzzleError } = useReadContract({
-    address: CONTRACT_ADDRESS, abi: puzzleChainAbi, functionName: "getCurrentPuzzle",
+  const { data: puzzleResults, isLoading: puzzleLoading } = useReadContracts({
+    contracts: [
+      { address: CONTRACT_ADDRESS, abi: puzzleChainAbi, functionName: "getCurrentPuzzle" },
+      { address: CONTRACT_ADDRESS, abi: puzzleChainAbi, functionName: "puzzleCount" },
+      { address: CONTRACT_ADDRESS, abi: puzzleChainAbi, functionName: "currentPuzzleId" },
+    ],
     query: { refetchInterval: 30_000, staleTime: 15_000 },
   });
-  const { data: rawCount }    = useReadContract({
-    address: CONTRACT_ADDRESS, abi: puzzleChainAbi, functionName: "puzzleCount",
-    query: { refetchInterval: 30_000, staleTime: 15_000 },
-  });
-  const { data: rawPuzzleId } = useReadContract({
-    address: CONTRACT_ADDRESS, abi: puzzleChainAbi, functionName: "currentPuzzleId",
-    query: { refetchInterval: 30_000, staleTime: 15_000 },
-  });
+
+  const puzzleError       = puzzleResults?.[0]?.status === "failure";
+  const rawPuzzle         = puzzleResults?.[0]?.result;
+  const rawCount          = puzzleResults?.[1]?.result;
+  const rawPuzzleId       = puzzleResults?.[2]?.result;
 
   const puzzle            = rawPuzzle as PuzzleResult | undefined;
   const puzzleDescription = puzzle?.[2] || null;
@@ -201,13 +209,13 @@ export default function PlayPage() {
   /* Reset if wallet never responds within 2 minutes */
   useEffect(() => {
     if (!isCommitPending) return;
-    const t = setTimeout(() => { resetCommit(); setPending(null); }, 120_000);
+    const t = setTimeout(() => { resetCommit(); setPending(null); }, WALLET_TIMEOUT_MS);
     return () => clearTimeout(t);
   }, [isCommitPending, resetCommit]);
 
   useEffect(() => {
     if (!isRevealPending) return;
-    const t = setTimeout(() => { resetReveal(); }, 120_000);
+    const t = setTimeout(() => { resetReveal(); }, WALLET_TIMEOUT_MS);
     return () => clearTimeout(t);
   }, [isRevealPending, resetReveal]);
 
@@ -233,7 +241,9 @@ export default function PlayPage() {
   function handleCommit(e: React.FormEvent) {
     e.preventDefault();
     if (!userAddress || !isConnected) return;
-    const answerHex = encodeAnswer(answer);
+    const trimmed = answer.trim();
+    if (!trimmed || !/^[A-Z0-9_-]{1,32}$/.test(trimmed)) { setEncError(true); return; }
+    const answerHex = encodeAnswer(trimmed);
     if (!answerHex || currentPuzzleId === undefined) return;
     const nonceBytes = crypto.getRandomValues(new Uint8Array(32));
     const nonce = `0x${Array.from(nonceBytes).map(b => b.toString(16).padStart(2, "0")).join("")}` as `0x${string}`;
