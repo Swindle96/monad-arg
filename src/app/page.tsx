@@ -1,7 +1,8 @@
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { ConnectKitButton } from "connectkit";
 import type { Metadata } from "next";
+
+const ConnectButton = dynamic(() => import("@/components/ConnectButton"), { ssr: false });
 
 export const metadata: Metadata = {
   title: "CHAIN_DETECTIVE — On-Chain ARG on Monad Testnet",
@@ -234,7 +235,7 @@ export default function Home() {
               Connect your wallet to submit answers on-chain. All evidence verified by smart contract.
             </p>
           </div>
-          <ConnectKitButton />
+          <ConnectButton />
         </div>
       </section>
 
