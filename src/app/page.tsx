@@ -1,58 +1,116 @@
-"use client";
-
-import { ConnectKitButton } from "connectkit";
 import Link from "next/link";
-import AnomalyScene from "@/components/AnomalyScene";
+import dynamic from "next/dynamic";
+import { ConnectKitButton } from "connectkit";
+import type { Metadata } from "next";
 
-const heroStats = [
-  { label: "SIGNAL",   value: "UNSTABLE" },
-  { label: "PROTOCOL", value: "COMMIT/REVEAL" },
-  { label: "DELAY",    value: "3 BLOCKS" },
-  { label: "NETWORK",  value: "MONAD" },
+export const metadata: Metadata = {
+  title: "CHAIN_DETECTIVE — On-Chain ARG on Monad Testnet",
+  description: "A live anomaly has been detected on-chain. Decode transactions, solve cryptographic puzzles, commit your answer before the mempool sees it, then break the seal.",
+  alternates: { canonical: "/" },
+};
+
+const AnomalyScene = dynamic(() => import("@/components/AnomalyScene"), {
+  ssr: false,
+  loading: () => <div className="absolute inset-0 bg-[#07040f]" aria-hidden="true" />,
+});
+
+const caseStats = [
+  { label: "CASE STATUS",  value: "UNSTABLE",      accent: "var(--red-alert)" },
+  { label: "PROTOCOL",     value: "COMMIT/REVEAL",  accent: "var(--purple-light)" },
+  { label: "BLOCK DELAY",  value: "10 BLOCKS",      accent: "var(--amber)" },
+  { label: "NETWORK",      value: "MONAD",          accent: "var(--cyan)" },
 ];
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  name: "CHAIN_DETECTIVE",
+  url: process.env.NEXT_PUBLIC_SITE_URL ?? "https://chaindetective.xyz",
+  applicationCategory: "Game",
+  operatingSystem: "Web",
+  description:
+    "An on-chain alternate reality game running on Monad Testnet. Decode transactions, solve cryptographic puzzles, commit your answer before the mempool sees it, then break the seal.",
+  genre: "Alternate Reality Game",
+  keywords: "ARG, blockchain puzzle, Monad testnet, on-chain game, crypto detective",
+  offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+};
 
 export default function Home() {
   return (
     <div style={{ color: "var(--text)" }}>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
 
       {/* ── HERO ─────────────────────────────────────────────────── */}
       <section
         className="relative flex flex-col overflow-hidden"
         style={{ minHeight: "calc(100svh - 56px)" }}
       >
-        <AnomalyScene className="opacity-80" />
+        <AnomalyScene className="opacity-70" />
 
-        {/* Bottom + top gradient fades */}
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-64" style={{ background: "linear-gradient(to top, #07040f 20%, transparent)" }} />
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-40" style={{ background: "linear-gradient(to bottom, rgba(7,4,15,0.55), transparent)" }} />
+        {/* Scan line effect over hero */}
+        <div className="scan-anim" aria-hidden="true" />
+
+        {/* Gradient fades */}
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-72" style={{ background: "linear-gradient(to top, #07040f 25%, transparent)" }} aria-hidden="true" />
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-48"   style={{ background: "linear-gradient(to bottom, rgba(7,4,15,0.65), transparent)" }} aria-hidden="true" />
 
         {/* Content */}
         <div
           className="relative flex flex-col flex-1 mx-auto w-full max-w-7xl px-5 sm:px-8 lg:px-12 py-8"
           style={{ zIndex: 10 }}
         >
-          {/* Top signal bar */}
+
+          {/* Top bar */}
           <div className="flex items-center justify-between mb-auto reveal-up">
             <div className="flex items-center gap-3">
+              {/* Amber pulse dot — evidence found */}
               <span
-                className="w-2 h-2 rounded-full neon-pulse shrink-0"
-                style={{ background: "#85E6FF", boxShadow: "0 0 10px #85E6FF" }}
+                className="w-2 h-2 rounded-full amber-pulse shrink-0"
+                style={{ background: "var(--amber)", boxShadow: "0 0 10px var(--amber)" }}
               />
-              <span style={{ fontFamily: "var(--font-roboto-mono)", fontSize: "0.68rem", letterSpacing: "0.28em", color: "var(--text-dim)" }}>
-                MONAD TESTNET · SEASON 01
+              <span
+                style={{
+                  fontFamily: "var(--font-special-elite), monospace",
+                  fontSize: "0.68rem",
+                  letterSpacing: "0.26em",
+                  color: "var(--text-dim)",
+                }}
+              >
+                CASE FILE #0001 · SEASON 01 · MONAD TESTNET
               </span>
             </div>
-            <span className="hidden sm:block cursor-blink after:content-['_'] after:inline-block" style={{ fontFamily: "var(--font-roboto-mono)", fontSize: "0.68rem", letterSpacing: "0.22em", color: "var(--text-dim)" }}>
-              LIVE SIGNAL ACTIVE
+            <span
+              className="hidden sm:flex items-center gap-2 classified-stamp"
+              aria-label="Classification: Active Investigation"
+            >
+              ACTIVE INVESTIGATION
             </span>
           </div>
 
           {/* Center — headline */}
           <div className="flex flex-col items-center text-center py-10 reveal-up reveal-up-1" style={{ gap: "1.75rem" }}>
-            <p className="rift-kicker">Alternate Reality Game</p>
+            {/* Case file kicker */}
+            <div className="flex items-center gap-3">
+              <div className="h-px w-8" style={{ background: "var(--amber)", boxShadow: "0 0 6px var(--amber)" }} />
+              <p
+                style={{
+                  fontFamily: "var(--font-special-elite), monospace",
+                  fontSize: "0.75rem",
+                  letterSpacing: "0.32em",
+                  color: "var(--amber)",
+                  textTransform: "uppercase",
+                }}
+              >
+                Alternate Reality Game · On-Chain Investigation
+              </p>
+              <div className="h-px w-8" style={{ background: "var(--amber)", boxShadow: "0 0 6px var(--amber)" }} />
+            </div>
 
             {/* 3-layer chromatic title */}
-            <div className="relative select-none" style={{ display: "inline-block", overflow: "hidden" }}>
+            <div className="relative select-none" style={{ display: "inline-block" }}>
               <h1
                 className="rift-title-3d"
                 style={{ fontSize: "clamp(4rem, 14vw, 10rem)", lineHeight: 0.85 }}
@@ -62,54 +120,85 @@ export default function Home() {
                   className="block"
                   style={{
                     color: "#6E54FF",
-                    textShadow: "0 0 80px rgba(110,84,255,0.55), 4px 0 0 rgba(133,230,255,0.35), -4px 0 0 rgba(255,142,228,0.35)",
+                    textShadow: "0 0 80px rgba(110,84,255,0.55), 4px 0 0 rgba(133,230,255,0.30), -4px 0 0 rgba(212,165,116,0.30)",
                   }}
                 >
                   DETECTIVE
                 </span>
               </h1>
-              <h1 className="rift-title glitch-r pointer-events-none" style={{ fontSize: "clamp(4rem, 14vw, 10rem)", lineHeight: 0.85, color: "#FF8EE4", opacity: 0.09, position: "absolute", inset: 0 }} aria-hidden="true">
+              {/* Glitch layers */}
+              <h1
+                className="rift-title glitch-r pointer-events-none"
+                style={{ fontSize: "clamp(4rem, 14vw, 10rem)", lineHeight: 0.85, color: "#D4A574", opacity: 0.08, position: "absolute", inset: 0 }}
+                aria-hidden="true"
+              >
                 CHAIN<span className="block">DETECTIVE</span>
               </h1>
-              <h1 className="rift-title glitch-b pointer-events-none" style={{ fontSize: "clamp(4rem, 14vw, 10rem)", lineHeight: 0.85, color: "#85E6FF", opacity: 0.09, position: "absolute", inset: 0 }} aria-hidden="true">
+              <h1
+                className="rift-title glitch-b pointer-events-none"
+                style={{ fontSize: "clamp(4rem, 14vw, 10rem)", lineHeight: 0.85, color: "#85E6FF", opacity: 0.08, position: "absolute", inset: 0 }}
+                aria-hidden="true"
+              >
                 CHAIN<span className="block">DETECTIVE</span>
               </h1>
             </div>
 
+            {/* Description */}
             <p
               className="max-w-lg text-balance reveal-up reveal-up-2"
-              style={{ fontFamily: "var(--font-inter)", fontSize: "clamp(0.9rem, 1.8vw, 1.05rem)", lineHeight: 1.75, color: "var(--text-muted)" }}
+              style={{
+                fontFamily: "var(--font-inter)",
+                fontSize: "clamp(0.9rem, 1.8vw, 1.05rem)",
+                lineHeight: 1.75,
+                color: "var(--text-muted)",
+              }}
             >
-              Investigate a live on-chain anomaly. Read transaction residue,
-              commit the answer, reveal after the block delay, and claim the
-              season record before anyone else.
+              A live anomaly has been detected on-chain. Read transaction residue,
+              commit your answer before the mempool sees it, wait the block delay,
+              then break the seal — and claim the season record.
             </p>
 
+            {/* CTAs */}
             <div className="flex flex-wrap items-center justify-center gap-3 reveal-up reveal-up-2">
               <Link href="/play" className="rift-btn px-9 py-3.5">
-                ENTER ANOMALY
+                OPEN CASE FILE
               </Link>
               <Link href="/explore" className="rift-btn-ghost px-9 py-3.5">
-                WATCH THE CHAIN
+                MONITOR FEED
               </Link>
             </div>
           </div>
 
-          {/* Bottom — stats grid pinned to hero bottom */}
+          {/* Bottom stats — evidence tags */}
           <div
             className="grid grid-cols-2 sm:grid-cols-4 gap-px mt-auto reveal-up reveal-up-3"
-            style={{ background: "rgba(110,84,255,0.18)" }}
+            style={{ background: "rgba(212,165,116,0.12)" }}
           >
-            {heroStats.map(({ label, value }) => (
+            {caseStats.map(({ label, value, accent }) => (
               <div
                 key={label}
                 className="px-4 py-3"
-                style={{ background: "rgba(7,4,15,0.88)", backdropFilter: "blur(12px)" }}
+                style={{ background: "rgba(7,4,15,0.92)", backdropFilter: "blur(12px)" }}
               >
-                <p style={{ fontFamily: "var(--font-roboto-mono)", fontSize: "0.62rem", letterSpacing: "0.26em", color: "var(--text-dim)", marginBottom: "5px" }}>
+                <p
+                  style={{
+                    fontFamily: "var(--font-roboto-mono)",
+                    fontSize: "0.58rem",
+                    letterSpacing: "0.28em",
+                    color: "var(--text-dim)",
+                    marginBottom: "5px",
+                  }}
+                >
                   {label}
                 </p>
-                <p style={{ fontFamily: "var(--font-syne)", fontSize: "0.88rem", fontWeight: 700, letterSpacing: "0.08em", color: "var(--text)" }}>
+                <p
+                  style={{
+                    fontFamily: "var(--font-special-elite), monospace",
+                    fontSize: "0.85rem",
+                    letterSpacing: "0.08em",
+                    color: accent,
+                  }}
+                >
                   {value}
                 </p>
               </div>
@@ -121,57 +210,92 @@ export default function Home() {
       {/* ── WALLET BAND ──────────────────────────────────────────── */}
       <section
         style={{
-          background: "rgba(14,9,28,0.96)",
-          borderTop: "1px solid rgba(110,84,255,0.22)",
+          background: "rgba(14,9,28,0.97)",
+          borderTop: "1px solid rgba(212,165,116,0.18)",
           borderBottom: "1px solid rgba(110,84,255,0.12)",
         }}
       >
         <div className="mx-auto max-w-7xl px-5 sm:px-8 lg:px-12 py-6 flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-10">
           <div className="flex-1">
-            <p style={{ fontFamily: "var(--font-roboto-mono)", fontSize: "0.72rem", letterSpacing: "0.22em", color: "var(--purple)", marginBottom: "6px" }}>
-              WALLET HANDSHAKE
+            {/* Dossier-style label */}
+            <p
+              style={{
+                fontFamily: "var(--font-special-elite), monospace",
+                fontSize: "0.72rem",
+                letterSpacing: "0.24em",
+                color: "var(--amber)",
+                marginBottom: "6px",
+                textTransform: "uppercase",
+              }}
+            >
+              Agent Identification Required
             </p>
             <p style={{ fontFamily: "var(--font-inter)", fontSize: "0.875rem", lineHeight: 1.65, color: "var(--text-muted)" }}>
-              Connect only when ready to submit or reveal. On-chain verification required.
+              Connect your wallet to submit answers on-chain. All evidence verified by smart contract.
             </p>
           </div>
           <ConnectKitButton />
         </div>
       </section>
 
-      {/* ── BENTO FEATURES ───────────────────────────────────────── */}
+      {/* ── INVESTIGATION PROTOCOL ───────────────────────────────── */}
       <section className="px-5 py-20 sm:px-8 lg:px-12">
         <div className="mx-auto max-w-7xl">
 
           {/* Section header */}
           <div className="flex items-end justify-between mb-10">
             <div>
-              <p className="rift-kicker mb-3">Field protocol</p>
+              <div className="flex items-center gap-3 mb-3">
+                {/* Evidence number marker */}
+                <span
+                  className="evidence-tag"
+                  style={{ fontSize: "0.58rem", letterSpacing: "0.3em" }}
+                >
+                  FIELD PROTOCOL
+                </span>
+              </div>
               <h2 className="rift-title" style={{ fontSize: "clamp(1.8rem, 4vw, 3rem)" }}>
                 Not a game board.
-                <span className="block" style={{ color: "#85E6FF" }}>A hostile signal.</span>
+                <span className="block" style={{ color: "var(--amber)" }}>A crime scene.</span>
               </h2>
             </div>
-            <div className="hidden lg:block rift-line" style={{ width: "100px", marginBottom: "10px" }} />
+            <div className="hidden lg:flex flex-col items-end gap-1" style={{ marginBottom: "10px" }}>
+              <div className="rift-line" style={{ width: "100px" }} />
+              <div style={{ width: "60px", height: "1px", background: "rgba(212,165,116,0.3)" }} />
+            </div>
           </div>
 
           {/* Bento grid */}
           <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
 
-            {/* ── LARGE: CALLDATA (spans 2 cols) ── */}
+            {/* ── EVIDENCE 01: CALLDATA (spans 2 cols) ── */}
             <article
-              className="rift-panel group cursor-default relative overflow-hidden reveal-up lg:col-span-2"
+              className="dossier group cursor-default relative reveal-up lg:col-span-2"
               style={{ borderRadius: "2px", padding: "32px", animationDelay: "0.1s" }}
             >
+              {/* Corner fold already added by .dossier::after */}
+              {/* Hover glow */}
               <div
                 className="absolute inset-0 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-500"
-                style={{ background: "radial-gradient(ellipse at 0% 50%, rgba(133,230,255,0.07), transparent 65%)" }}
+                style={{ background: "radial-gradient(ellipse at 0% 50%, rgba(212,165,116,0.06), transparent 65%)" }}
+                aria-hidden="true"
               />
               <div className="relative flex flex-col lg:flex-row lg:items-end lg:justify-between gap-8">
                 <div>
-                  <p style={{ fontFamily: "var(--font-roboto-mono)", fontSize: "0.68rem", letterSpacing: "0.24em", color: "#85E6FF", marginBottom: "18px" }}>
-                    01 / CALLDATA
-                  </p>
+                  {/* Evidence label */}
+                  <div className="flex items-center gap-3 mb-5">
+                    <span className="evidence-tag">EVIDENCE 01</span>
+                    <span
+                      style={{
+                        fontFamily: "var(--font-roboto-mono)",
+                        fontSize: "0.62rem",
+                        letterSpacing: "0.22em",
+                        color: "var(--cyan)",
+                      }}
+                    >
+                      CALLDATA
+                    </span>
+                  </div>
                   <h3 className="rift-title" style={{ fontSize: "clamp(1.3rem, 2.5vw, 1.9rem)", marginBottom: "14px" }}>
                     Decode the fracture
                   </h3>
@@ -182,29 +306,34 @@ export default function Home() {
                     as evidence, not decoration.
                   </p>
                 </div>
+
                 {/* Terminal panel */}
                 <div
-                  className="shrink-0 p-4 hidden sm:block"
+                  className="shrink-0 p-4 hidden sm:block vhs-static"
                   style={{
-                    background: "rgba(7,4,15,0.9)",
-                    border: "1px solid rgba(133,230,255,0.18)",
+                    background: "rgba(7,4,15,0.95)",
+                    border: "1px solid rgba(212,165,116,0.18)",
                     fontFamily: "var(--font-roboto-mono)",
                     lineHeight: 1.9,
                     fontSize: "0.65rem",
-                    minWidth: "210px",
-                    color: "#85E6FF",
+                    minWidth: "220px",
+                    color: "var(--amber)",
+                    position: "relative",
+                    overflow: "hidden",
                   }}
                 >
-                  <p style={{ color: "rgba(107,98,133,0.8)" }}>{`// tx.input decoded`}</p>
-                  <p>0x3d18b912</p>
-                  <p style={{ color: "#DDD7FE" }}>000000000000…</p>
-                  <p style={{ color: "#FF8EE4" }}>de4db33f…</p>
-                  <p style={{ marginTop: "6px", color: "#FFAE45" }}>↳ CLUE DETECTED</p>
+                  {/* Corner fold on terminal */}
+                  <div style={{ position: "absolute", top: 0, right: 0, width: 0, height: 0, borderStyle: "solid", borderWidth: "0 12px 12px 0", borderColor: `transparent rgba(212,165,116,0.2) transparent transparent` }} aria-hidden="true" />
+                  <p style={{ color: "rgba(139,129,169,0.7)" }}>{`// tx.input decoded`}</p>
+                  <p style={{ color: "var(--amber)" }}>0x3d18b912</p>
+                  <p style={{ color: "var(--purple-light)" }}>000000000000…</p>
+                  <p style={{ color: "var(--pink)" }}>de4db33f…</p>
+                  <p style={{ marginTop: "6px", color: "var(--red-alert)", fontWeight: 700 }}>↳ CLUE DETECTED</p>
                 </div>
               </div>
             </article>
 
-            {/* ── COMMIT ── */}
+            {/* ── EVIDENCE 02: COMMIT ── */}
             <article
               className="rift-panel group cursor-default relative overflow-hidden reveal-up"
               style={{ borderRadius: "2px", padding: "28px", animationDelay: "0.22s" }}
@@ -212,12 +341,14 @@ export default function Home() {
               <div
                 className="absolute inset-0 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-500"
                 style={{ background: "radial-gradient(ellipse at 50% 0%, rgba(110,84,255,0.12), transparent 70%)" }}
+                aria-hidden="true"
               />
-              <p style={{ fontFamily: "var(--font-roboto-mono)", fontSize: "0.68rem", letterSpacing: "0.24em", color: "#6E54FF", marginBottom: "18px" }}>
-                02 / COMMIT
-              </p>
+              <div className="flex items-center gap-3 mb-5">
+                <span className="evidence-tag">EVIDENCE 02</span>
+                <span style={{ fontFamily: "var(--font-roboto-mono)", fontSize: "0.62rem", letterSpacing: "0.22em", color: "var(--purple)" }}>COMMIT</span>
+              </div>
               <h3 className="rift-title" style={{ fontSize: "1.35rem", marginBottom: "12px" }}>
-                Hide the answer
+                Seal the evidence
               </h3>
               <div className="rift-line mb-5 w-12" />
               <p style={{ fontFamily: "var(--font-inter)", fontSize: "0.875rem", lineHeight: 1.7, color: "var(--text-muted)" }}>
@@ -232,7 +363,7 @@ export default function Home() {
               </div>
             </article>
 
-            {/* ── REVEAL ── */}
+            {/* ── EVIDENCE 03: REVEAL ── */}
             <article
               className="rift-panel group cursor-default relative overflow-hidden reveal-up"
               style={{ borderRadius: "2px", padding: "28px", animationDelay: "0.34s" }}
@@ -240,12 +371,14 @@ export default function Home() {
               <div
                 className="absolute inset-0 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-500"
                 style={{ background: "radial-gradient(ellipse at 50% 100%, rgba(255,142,228,0.09), transparent 70%)" }}
+                aria-hidden="true"
               />
-              <p style={{ fontFamily: "var(--font-roboto-mono)", fontSize: "0.68rem", letterSpacing: "0.24em", color: "#FF8EE4", marginBottom: "18px" }}>
-                03 / REVEAL
-              </p>
+              <div className="flex items-center gap-3 mb-5">
+                <span className="evidence-tag" style={{ borderColor: "rgba(255,142,228,0.28)", color: "var(--pink)", background: "rgba(255,142,228,0.08)" }}>EVIDENCE 03</span>
+                <span style={{ fontFamily: "var(--font-roboto-mono)", fontSize: "0.62rem", letterSpacing: "0.22em", color: "var(--pink)" }}>REVEAL</span>
+              </div>
               <h3 className="rift-title" style={{ fontSize: "1.35rem", marginBottom: "12px" }}>
-                Break the lock
+                Break the seal
               </h3>
               <div className="rift-line mb-5 w-12" />
               <p style={{ fontFamily: "var(--font-inter)", fontSize: "0.875rem", lineHeight: 1.7, color: "var(--text-muted)" }}>
@@ -259,29 +392,54 @@ export default function Home() {
                 ))}
               </div>
               <p style={{ fontFamily: "var(--font-roboto-mono)", fontSize: "0.62rem", letterSpacing: "0.18em", color: "rgba(255,142,228,0.5)", marginTop: "7px" }}>
-                3 BLOCK DELAY
+                10 BLOCK DELAY · MANDATORY
               </p>
             </article>
 
-            {/* ── SEASON ACCESS CTA (full width) ── */}
+            {/* ── CASE ACCESS CTA (full width) ── */}
             <article
               className="rift-panel-hot rift-glow-border md:col-span-2 lg:col-span-3 relative overflow-hidden reveal-up"
               style={{ borderRadius: "2px", padding: "28px", animationDelay: "0.46s" }}
             >
+              {/* Amber top accent line */}
+              <div
+                className="absolute top-0 left-0 right-0 h-px"
+                style={{ background: "linear-gradient(90deg, transparent, var(--amber) 30%, var(--purple) 70%, transparent)" }}
+                aria-hidden="true"
+              />
               <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-6">
                 <div>
-                  <p className="rift-kicker mb-2">Season access</p>
+                  <div className="flex items-center gap-3 mb-2">
+                    <span
+                      className="evidence-tag"
+                      style={{ borderColor: "rgba(255,174,69,0.35)", color: "var(--orange)", background: "rgba(255,174,69,0.08)" }}
+                    >
+                      SEASON 01
+                    </span>
+                    <span
+                      style={{
+                        fontFamily: "var(--font-special-elite), monospace",
+                        fontSize: "0.65rem",
+                        letterSpacing: "0.22em",
+                        color: "var(--text-dim)",
+                      }}
+                    >
+                      Case Access
+                    </span>
+                  </div>
                   <p style={{ fontFamily: "var(--font-inter)", fontSize: "0.9rem", lineHeight: 1.7, color: "var(--text-muted)" }}>
-                    Use Play for the active puzzle. Use Explore when the clue
-                    points back to calldata, contracts, or fresh block activity.
+                    Use <span style={{ color: "var(--text)" }}>Case Files</span> for active puzzles. Use{" "}
+                    <span style={{ color: "var(--text)" }}>Intel Feed</span> when the clue points back
+                    to calldata, contracts, or fresh block activity.
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-3 shrink-0">
-                  <Link href="/play" className="rift-btn px-7 py-3">PLAY</Link>
-                  <Link href="/leaderboard" className="rift-btn-ghost px-7 py-3">RANKS</Link>
+                  <Link href="/play" className="rift-btn px-7 py-3">CASE FILES</Link>
+                  <Link href="/leaderboard" className="rift-btn-ghost px-7 py-3">FIELD AGENTS</Link>
                 </div>
               </div>
             </article>
+
           </div>
         </div>
       </section>
@@ -289,23 +447,36 @@ export default function Home() {
       {/* ── FOOTER ───────────────────────────────────────────────── */}
       <footer
         className="px-5 py-8 sm:px-8 lg:px-12"
-        style={{ borderTop: "1px solid rgba(110,84,255,0.16)" }}
+        style={{ borderTop: "1px solid rgba(212,165,116,0.12)" }}
       >
         <div className="mx-auto flex max-w-7xl flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <span style={{ fontFamily: "var(--font-roboto-mono)", fontSize: "0.72rem", letterSpacing: "0.2em", color: "var(--text-dim)" }}>
-            CHAIN_DETECTIVE © 2026 · MONAD TESTNET
-          </span>
+          <div className="flex items-center gap-3">
+            <span
+              style={{
+                fontFamily: "var(--font-special-elite), monospace",
+                fontSize: "0.68rem",
+                letterSpacing: "0.2em",
+                color: "var(--text-dim)",
+              }}
+            >
+              CHAIN_DETECTIVE
+            </span>
+            <span style={{ color: "var(--amber-border)" }}>·</span>
+            <span style={{ fontFamily: "var(--font-roboto-mono)", fontSize: "0.62rem", letterSpacing: "0.18em", color: "var(--text-dim)" }}>
+              © 2026 · MONAD TESTNET
+            </span>
+          </div>
           <nav aria-label="Footer navigation" className="flex gap-6">
             {[
-              { href: "/play",        label: "PLAY" },
-              { href: "/explore",     label: "EXPLORE" },
-              { href: "/leaderboard", label: "RANKS" },
+              { href: "/play",        label: "CASE FILES" },
+              { href: "/explore",     label: "INTEL FEED" },
+              { href: "/leaderboard", label: "FIELD AGENTS" },
             ].map(({ href, label }) => (
               <Link
                 key={href}
                 href={href}
-                className="flex min-h-[44px] items-center transition-colors duration-200 hover:text-[#6E54FF]"
-                style={{ fontFamily: "var(--font-roboto-mono)", fontSize: "0.72rem", letterSpacing: "0.18em", color: "var(--text-dim)" }}
+                className="flex min-h-[44px] items-center transition-colors duration-200 hover:text-[var(--amber)]"
+                style={{ fontFamily: "var(--font-roboto-mono)", fontSize: "0.68rem", letterSpacing: "0.18em", color: "var(--text-dim)" }}
               >
                 {label}
               </Link>
@@ -313,6 +484,7 @@ export default function Home() {
           </nav>
         </div>
       </footer>
+
     </div>
   );
 }

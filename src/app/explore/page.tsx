@@ -58,6 +58,26 @@ function getArgLabel(to: `0x${string}` | null): string | null {
 
 const mono: React.CSSProperties = { fontFamily: "var(--font-roboto-mono)" };
 
+// Module-level cache — same calldata selector appears in many txs (js-cache-function-results)
+const decodeCache = new Map<string, { display: string; decoded: boolean }>();
+
+function decodeInputCached(input: `0x${string}`): { display: string; decoded: boolean } {
+  const cached = decodeCache.get(input);
+  if (cached) return cached;
+  const result = decodeInput(input);
+  if (decodeCache.size > 2000) {
+    // Evict the 500 oldest entries (Map preserves insertion order) instead of
+    // nuking the whole cache, which would cause a storm of 2000 synchronous misses.
+    let evicted = 0;
+    for (const k of decodeCache.keys()) {
+      decodeCache.delete(k);
+      if (++evicted >= 500) break;
+    }
+  }
+  decodeCache.set(input, result);
+  return result;
+}
+
 export default function ExplorePage() {
   const [txs, setTxs]                 = useState<TxEntry[]>([]);
   const [latestBlock, setLatestBlock] = useState<bigint | null>(null);
@@ -113,56 +133,88 @@ export default function ExplorePage() {
     if (shouldScroll.current) bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [txs]);
 
-  function handleScroll() {
+  // Stable ref — only accesses other refs, no state deps (rerender-use-ref-transient-values)
+  const handleScroll = useCallback(() => {
     const el = listRef.current;
     if (!el) return;
     shouldScroll.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
-  }
+  }, []);
+
+  // Passive scroll listener avoids blocking the main thread (client-passive-event-listeners)
+  useEffect(() => {
+    const el = listRef.current;
+    if (!el) return;
+    el.addEventListener("scroll", handleScroll, { passive: true });
+    return () => el.removeEventListener("scroll", handleScroll);
+  }, [handleScroll]);
 
   const { displayed, argCount } = useMemo(() => {
     const argTxs = txs.filter(tx => getArgLabel(tx.to) !== null);
     return { displayed: filterARG ? argTxs : txs, argCount: argTxs.length };
   }, [txs, filterARG]);
 
+  /* Status colors — amber for live (detective feel), pink for error */
   const statusColor =
-    status === "live"  ? "#85E6FF" :
-    status === "error" ? "#FF8EE4" : "#FFAE45";
+    status === "live"  ? "var(--amber)"  :
+    status === "error" ? "var(--red-alert)" : "#FFAE45";
   const statusLabel =
-    status === "live"  ? "LIVE" :
-    status === "error" ? `ERR #${retryCount.current}` : "CONNECTING";
+    status === "live"  ? "FEED LIVE" :
+    status === "error" ? `SIGNAL LOST #${retryCount.current}` : "CONNECTING";
 
   return (
     <div
       className="flex flex-col"
       style={{ height: "calc(100dvh - 3.5rem)", color: "var(--text)" }}
     >
-      {/* ── HEADER ───────────────────────────────────────────────── */}
+      {/* ── SURVEILLANCE HEADER ───────────────────────────────────── */}
       <div
         style={{
-          background:    "rgba(7,4,15,0.94)",
-          borderBottom:  "1px solid rgba(110,84,255,0.2)",
+          background:    "rgba(7,4,15,0.97)",
+          borderBottom:  "1px solid rgba(212,165,116,0.14)",
           backdropFilter: "blur(20px)",
           flexShrink: 0,
         }}
       >
+        {/* Top amber accent line */}
+        <div style={{ height: "1px", background: "linear-gradient(90deg, transparent, var(--amber) 30%, var(--purple) 70%, transparent)" }} aria-hidden="true" />
+
         {/* Top row */}
         <div className="flex items-center justify-between px-4 sm:px-6 py-4">
           <div className="flex items-center gap-4">
-            {/* Pulse dot */}
+            {/* Status indicator */}
             <div className="relative flex items-center justify-center w-8 h-8 shrink-0">
               <span
                 className="absolute w-full h-full rounded-full"
-                style={{ background: statusColor, opacity: 0.12, animation: status === "live" ? "neon-pulse 2s ease-in-out infinite" : "none" }}
+                style={{
+                  background: statusColor,
+                  opacity: 0.10,
+                  animation: status === "live" ? "amber-pulse 2.4s ease-in-out infinite" : "none",
+                }}
+                aria-hidden="true"
               />
               <span
                 className="w-2.5 h-2.5 rounded-full"
-                style={{ background: statusColor, boxShadow: `0 0 10px ${statusColor}`, animation: status === "live" ? "neon-pulse 2s ease-in-out infinite" : "none" }}
+                style={{
+                  background: statusColor,
+                  boxShadow: `0 0 10px ${statusColor}`,
+                  animation: status === "live" ? "amber-pulse 2.4s ease-in-out infinite" : "none",
+                }}
+                aria-hidden="true"
               />
             </div>
 
             <div>
-              <h1 style={{ fontFamily: "var(--font-syne)", fontWeight: 800, fontSize: "clamp(0.9rem, 2.5vw, 1.15rem)", textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--text)", textShadow: "0 0 20px rgba(110,84,255,0.4)" }}>
-                INTELLIGENCE FEED
+              <h1
+                style={{
+                  fontFamily: "var(--font-special-elite), monospace",
+                  fontWeight: 400,
+                  fontSize: "clamp(0.9rem, 2.5vw, 1.1rem)",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.12em",
+                  color: "var(--text)",
+                }}
+              >
+                Surveillance Feed
               </h1>
               <p style={{ ...mono, fontSize: "0.65rem", letterSpacing: "0.2em", color: statusColor, marginTop: "2px" }}>
                 {statusLabel} · MONAD TESTNET
@@ -173,12 +225,12 @@ export default function ExplorePage() {
           <div className="flex items-center gap-5">
             {latestBlock !== null && (
               <div className="hidden sm:flex flex-col items-end">
-                <span style={{ ...mono, fontSize: "0.62rem", letterSpacing: "0.2em", color: "var(--text-dim)" }}>LATEST BLOCK</span>
-                <span className="tabular-nums" style={{ ...mono, fontSize: "0.82rem", color: "var(--text)", letterSpacing: "0.06em" }}>#{latestBlock.toString()}</span>
+                <span style={{ ...mono, fontSize: "0.6rem", letterSpacing: "0.2em", color: "var(--text-dim)" }}>LATEST BLOCK</span>
+                <span className="tabular-nums" style={{ ...mono, fontSize: "0.82rem", color: "var(--amber)", letterSpacing: "0.06em" }}>#{latestBlock.toString()}</span>
               </div>
             )}
             <div className="flex flex-col items-end">
-              <span style={{ ...mono, fontSize: "0.62rem", letterSpacing: "0.2em", color: "var(--text-dim)" }}>BUFFER</span>
+              <span style={{ ...mono, fontSize: "0.6rem", letterSpacing: "0.2em", color: "var(--text-dim)" }}>BUFFER</span>
               <span className="tabular-nums" style={{ ...mono, fontSize: "0.82rem", color: "var(--text)", letterSpacing: "0.06em" }}>{txs.length}/{MAX_TXS}</span>
             </div>
           </div>
@@ -187,15 +239,15 @@ export default function ExplorePage() {
         {/* Filter + legend row */}
         <div
           className="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-6 py-3"
-          style={{ borderTop: "1px solid rgba(110,84,255,0.12)", background: "rgba(110,84,255,0.03)" }}
+          style={{ borderTop: "1px solid rgba(212,165,116,0.08)", background: "rgba(212,165,116,0.02)" }}
         >
           <div className="flex items-center gap-5">
             <span className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-sm shrink-0" style={{ background: "rgba(255,174,69,0.7)" }} />
+              <span className="w-2 h-2 rounded-sm shrink-0" style={{ background: "rgba(212,165,116,0.7)" }} aria-hidden="true" />
               <span style={{ ...mono, fontSize: "0.65rem", letterSpacing: "0.16em", color: "var(--text-dim)" }}>ARG contract tx</span>
             </span>
             <span className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-sm shrink-0" style={{ background: "rgba(110,84,255,0.7)" }} />
+              <span className="w-2 h-2 rounded-sm shrink-0" style={{ background: "rgba(110,84,255,0.7)" }} aria-hidden="true" />
               <span style={{ ...mono, fontSize: "0.65rem", letterSpacing: "0.16em", color: "var(--text-dim)" }}>calldata detected</span>
             </span>
           </div>
@@ -207,17 +259,17 @@ export default function ExplorePage() {
               ...mono,
               fontSize:      "0.68rem",
               letterSpacing: "0.16em",
-              border:     filterARG ? "1px solid rgba(255,174,69,0.6)" : "1px solid rgba(110,84,255,0.25)",
-              background:  filterARG ? "rgba(255,174,69,0.08)" : "rgba(110,84,255,0.04)",
-              color:       filterARG ? "#FFAE45" : "var(--text-dim)",
+              border:     filterARG ? "1px solid rgba(212,165,116,0.55)" : "1px solid rgba(110,84,255,0.22)",
+              background:  filterARG ? "rgba(212,165,116,0.07)" : "rgba(110,84,255,0.04)",
+              color:       filterARG ? "var(--amber)" : "var(--text-dim)",
             }}
           >
-            <span className="w-1.5 h-1.5 rounded-full" style={{ background: filterARG ? "#FFAE45" : "var(--text-dim)" }} />
+            <span className="w-1.5 h-1.5 rounded-full" style={{ background: filterARG ? "var(--amber)" : "var(--text-dim)" }} aria-hidden="true" />
             ARG ONLY
             {argCount > 0 && (
               <span
                 className="ml-1 px-1.5 py-0.5 rounded-sm"
-                style={{ background: "rgba(255,174,69,0.18)", color: "#FFAE45", fontSize: "0.65rem" }}
+                style={{ background: "rgba(212,165,116,0.14)", color: "var(--amber)", fontSize: "0.65rem" }}
               >
                 {argCount}
               </span>
@@ -225,14 +277,14 @@ export default function ExplorePage() {
           </button>
         </div>
 
-        {/* Desktop column headers */}
+        {/* Column headers */}
         <div
           className="hidden sm:grid px-4 sm:px-6 py-2"
           style={{
             gridTemplateColumns: "80px 150px 130px 130px 1fr",
             gap: "12px",
-            borderTop: "1px solid rgba(110,84,255,0.1)",
-            background: "rgba(110,84,255,0.025)",
+            borderTop: "1px solid rgba(212,165,116,0.06)",
+            background: "rgba(212,165,116,0.015)",
           }}
         >
           {["BLOCK", "TX HASH", "FROM", "TO", "CALLDATA"].map(h => (
@@ -244,9 +296,8 @@ export default function ExplorePage() {
       {/* ── FEED ─────────────────────────────────────────────────── */}
       <div
         ref={listRef}
-        onScroll={handleScroll}
         className="flex-1 min-h-0 overflow-y-auto"
-        style={{ background: "rgba(7,4,15,0.5)" }}
+        style={{ background: "rgba(7,4,15,0.55)" }}
       >
         {displayed.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-48 gap-3">
@@ -254,17 +305,17 @@ export default function ExplorePage() {
               className="animate-pulse"
               style={{ ...mono, fontSize: "0.72rem", letterSpacing: "0.22em", color: "var(--text-dim)" }}
             >
-              {filterARG ? "NO ARG TRANSACTIONS YET" : "WAITING FOR BLOCKS"}
+              {filterARG ? "NO ARG TRANSACTIONS INTERCEPTED" : "AWAITING SIGNAL"}
             </span>
-            <span style={{ ...mono, fontSize: "0.65rem", letterSpacing: "0.14em", color: "var(--text-dim)", opacity: 0.6 }}>
-              {filterARG ? "Toggle filter to see all transactions" : "Polling Monad Testnet every 2s"}
+            <span style={{ ...mono, fontSize: "0.65rem", letterSpacing: "0.14em", color: "var(--text-dim)", opacity: 0.55 }}>
+              {filterARG ? "Toggle filter to see all transactions" : "Monitoring Monad Testnet — polling every 2s"}
             </span>
           </div>
         ) : displayed.map(tx => {
           const argLabel    = getArgLabel(tx.to);
           const isARG       = argLabel !== null;
           const hasCalldata = tx.input !== "0x";
-          const { display, decoded } = decodeInput(tx.input);
+          const { display, decoded } = decodeInputCached(tx.input);
 
           return (
             <a
@@ -274,12 +325,12 @@ export default function ExplorePage() {
               rel="noopener noreferrer"
               className="block transition-all duration-150"
               style={{
-                borderBottom: `1px solid ${isARG ? "rgba(255,174,69,0.15)" : "rgba(110,84,255,0.07)"}`,
-                background:   isARG ? "rgba(255,174,69,0.04)" : "transparent",
-                borderLeft:   isARG ? "2px solid rgba(255,174,69,0.5)" : "2px solid transparent",
+                borderBottom: `1px solid ${isARG ? "rgba(212,165,116,0.14)" : "rgba(110,84,255,0.07)"}`,
+                background:   isARG ? "rgba(212,165,116,0.035)" : "transparent",
+                borderLeft:   isARG ? "2px solid rgba(212,165,116,0.5)" : "2px solid transparent",
               }}
-              onMouseEnter={e => (e.currentTarget.style.background = isARG ? "rgba(255,174,69,0.09)" : "rgba(110,84,255,0.05)")}
-              onMouseLeave={e => (e.currentTarget.style.background = isARG ? "rgba(255,174,69,0.04)" : "transparent")}
+              onMouseEnter={e => (e.currentTarget.style.background = isARG ? "rgba(212,165,116,0.08)" : "rgba(110,84,255,0.05)")}
+              onMouseLeave={e => (e.currentTarget.style.background = isARG ? "rgba(212,165,116,0.035)" : "transparent")}
             >
               {/* Desktop row */}
               <div
@@ -289,7 +340,7 @@ export default function ExplorePage() {
                 <span className="tabular-nums" style={{ ...mono, fontSize: "0.72rem", color: "var(--text-dim)" }}>
                   {tx.blockNumber.toString()}
                 </span>
-                <span style={{ ...mono, fontSize: "0.72rem", color: isARG ? "#FFAE45" : "#85E6FF", opacity: 0.9 }}>
+                <span style={{ ...mono, fontSize: "0.72rem", color: isARG ? "var(--amber)" : "var(--cyan)", opacity: 0.9 }}>
                   {shorten(tx.hash, 10, 6)}
                 </span>
                 <span style={{ ...mono, fontSize: "0.72rem", color: "var(--text-muted)" }}>
@@ -297,7 +348,7 @@ export default function ExplorePage() {
                 </span>
                 <span className="truncate" style={{ ...mono, fontSize: "0.72rem" }}>
                   {isARG ? (
-                    <span style={{ color: "#FFAE45" }}>{argLabel}</span>
+                    <span style={{ color: "var(--amber)" }}>{argLabel}</span>
                   ) : tx.to ? (
                     <span style={{ color: "var(--text-dim)" }}>{shorten(tx.to, 6, 4)}</span>
                   ) : (
@@ -307,13 +358,27 @@ export default function ExplorePage() {
                 <span className="flex items-center gap-2 min-w-0">
                   {isARG ? (
                     <>
-                      <span className="shrink-0 px-1.5 py-0.5" style={{ ...mono, fontSize: "0.62rem", letterSpacing: "0.14em", fontWeight: 700, background: "rgba(255,174,69,0.14)", color: "#FFAE45", border: "1px solid rgba(255,174,69,0.35)" }}>ARG TX</span>
-                      {hasCalldata && <span className="truncate" style={{ ...mono, fontSize: "0.72rem", color: "rgba(255,174,69,0.7)" }}>{display || tx.input.slice(0, 42)}</span>}
+                      <span
+                        className="shrink-0 px-1.5 py-0.5"
+                        style={{ ...mono, fontSize: "0.62rem", letterSpacing: "0.14em", fontWeight: 700, background: "rgba(212,165,116,0.12)", color: "var(--amber)", border: "1px solid rgba(212,165,116,0.3)" }}
+                      >
+                        ARG TX
+                      </span>
+                      {hasCalldata && (
+                        <span className="truncate" style={{ ...mono, fontSize: "0.72rem", color: "rgba(212,165,116,0.7)" }}>
+                          {display || tx.input.slice(0, 42)}
+                        </span>
+                      )}
                     </>
                   ) : hasCalldata ? (
                     <>
-                      <span className="shrink-0 px-1.5 py-0.5" style={{ ...mono, fontSize: "0.62rem", letterSpacing: "0.14em", fontWeight: 700, background: "rgba(110,84,255,0.12)", color: "#6E54FF", border: "1px solid rgba(110,84,255,0.3)" }}>CLUE?</span>
-                      <span className="truncate" style={{ ...mono, fontSize: "0.72rem", color: decoded ? "#DDD7FE" : "var(--text-dim)" }}>{display}</span>
+                      <span
+                        className="shrink-0 px-1.5 py-0.5"
+                        style={{ ...mono, fontSize: "0.62rem", letterSpacing: "0.14em", fontWeight: 700, background: "rgba(110,84,255,0.10)", color: "var(--purple)", border: "1px solid rgba(110,84,255,0.28)" }}
+                      >
+                        CLUE?
+                      </span>
+                      <span className="truncate" style={{ ...mono, fontSize: "0.72rem", color: decoded ? "var(--purple-light)" : "var(--text-dim)" }}>{display}</span>
                     </>
                   ) : (
                     <span style={{ ...mono, fontSize: "0.72rem", color: "var(--text-dim)", fontStyle: "italic" }}>transfer</span>
@@ -324,22 +389,22 @@ export default function ExplorePage() {
               {/* Mobile row */}
               <div className="sm:hidden px-4 py-3 flex flex-col gap-1.5">
                 <div className="flex items-center justify-between">
-                  <span style={{ ...mono, fontSize: "0.75rem", color: isARG ? "#FFAE45" : "#85E6FF", opacity: 0.9 }}>
+                  <span style={{ ...mono, fontSize: "0.75rem", color: isARG ? "var(--amber)" : "var(--cyan)", opacity: 0.9 }}>
                     {shorten(tx.hash, 12, 6)}
                   </span>
                   {isARG ? (
-                    <span className="px-1.5 py-0.5" style={{ ...mono, fontSize: "0.62rem", fontWeight: 700, background: "rgba(255,174,69,0.14)", color: "#FFAE45", border: "1px solid rgba(255,174,69,0.35)" }}>ARG TX</span>
+                    <span className="px-1.5 py-0.5" style={{ ...mono, fontSize: "0.62rem", fontWeight: 700, background: "rgba(212,165,116,0.12)", color: "var(--amber)", border: "1px solid rgba(212,165,116,0.3)" }}>ARG TX</span>
                   ) : hasCalldata ? (
-                    <span className="px-1.5 py-0.5" style={{ ...mono, fontSize: "0.62rem", fontWeight: 700, background: "rgba(110,84,255,0.12)", color: "#6E54FF", border: "1px solid rgba(110,84,255,0.3)" }}>CLUE?</span>
+                    <span className="px-1.5 py-0.5" style={{ ...mono, fontSize: "0.62rem", fontWeight: 700, background: "rgba(110,84,255,0.10)", color: "var(--purple)", border: "1px solid rgba(110,84,255,0.28)" }}>CLUE?</span>
                   ) : null}
                 </div>
                 <div className="flex items-center gap-3" style={{ ...mono, fontSize: "0.65rem", letterSpacing: "0.12em", color: "var(--text-dim)" }}>
                   <span className="tabular-nums">#{tx.blockNumber.toString()}</span>
                   <span>{shorten(tx.from, 8, 4)}</span>
-                  {isARG && <span style={{ color: "#FFAE45" }}>{argLabel}</span>}
+                  {isARG && <span style={{ color: "var(--amber)" }}>{argLabel}</span>}
                 </div>
                 {hasCalldata && display && (
-                  <span className="truncate" style={{ ...mono, fontSize: "0.65rem", color: isARG ? "rgba(255,174,69,0.75)" : decoded ? "#DDD7FE" : "var(--text-dim)" }}>
+                  <span className="truncate" style={{ ...mono, fontSize: "0.65rem", color: isARG ? "rgba(212,165,116,0.75)" : decoded ? "var(--purple-light)" : "var(--text-dim)" }}>
                     {display}
                   </span>
                 )}
@@ -354,20 +419,29 @@ export default function ExplorePage() {
       <div
         className="flex items-center justify-between px-4 sm:px-6 py-3 shrink-0"
         style={{
-          background:     "rgba(7,4,15,0.94)",
-          borderTop:      "1px solid rgba(110,84,255,0.18)",
+          background:     "rgba(7,4,15,0.97)",
+          borderTop:      "1px solid rgba(212,165,116,0.12)",
           backdropFilter: "blur(16px)",
         }}
       >
-        <span style={{ ...mono, fontSize: "0.65rem", letterSpacing: "0.2em", color: "var(--text-dim)" }}>
+        <span
+          style={{
+            fontFamily: "var(--font-special-elite), monospace",
+            fontSize: "0.65rem",
+            letterSpacing: "0.2em",
+            color: "var(--text-dim)",
+          }}
+        >
           CHAIN_DETECTIVE · MONAD TESTNET
         </span>
         <Link
           href="/play"
-          className="flex items-center min-h-[44px] transition-colors duration-200 hover:text-[#6E54FF]"
+          className="flex items-center min-h-[44px] transition-colors duration-200"
           style={{ ...mono, fontSize: "0.68rem", letterSpacing: "0.2em", color: "var(--text-dim)" }}
+          onMouseEnter={e => (e.currentTarget.style.color = "var(--amber)")}
+          onMouseLeave={e => (e.currentTarget.style.color = "var(--text-dim)")}
         >
-          PLAY →
+          OPEN CASE →
         </Link>
       </div>
     </div>

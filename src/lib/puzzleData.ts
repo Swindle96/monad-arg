@@ -1,13 +1,11 @@
 export type PuzzleCategory =
-  | "Blockchain Fundamentals"
-  | "Cryptography"
-  | "EVM Deep Dive"
-  | "DeFi"
   | "Monad Architecture"
-  | "Bitcoin & Tokens"
-  | "Security & Keys"
-  | "Cipher Puzzles"
-  | "Core Properties";
+  | "Monad Math"
+  | "Monad Cryptography"
+  | "Monad Economics"
+  | "EVM & Solidity"
+  | "Bitcoin & Ethereum"
+  | "Pure Algorithms";
 
 export interface PuzzleMeta {
   id: number;
@@ -18,137 +16,632 @@ export interface PuzzleMeta {
 // Descriptions only — answers are never stored client-side.
 // All 100 puzzles, indexed by puzzle ID (0-based, matches on-chain puzzleId).
 export const PUZZLE_META: PuzzleMeta[] = [
-  // ── Blockchain Fundamentals (0-14) ──────────────────────────────────────────
-  { id: 0,  category: "Blockchain Fundamentals", description: "The pseudonymous creator of Bitcoin. Their true identity has never been proven. What is their first name?" },
-  { id: 1,  category: "Blockchain Fundamentals", description: "A number used exactly once. Miners brute-force billions of these per second trying to produce a valid block hash." },
-  { id: 2,  category: "Blockchain Fundamentals", description: "The very first block in a blockchain. It has no parent. What is it called?" },
-  { id: 3,  category: "Blockchain Fundamentals", description: "A fixed-length cryptographic fingerprint of arbitrary data. It is the glue that chains blocks together." },
-  { id: 4,  category: "Blockchain Fundamentals", description: "A binary tree where leaf nodes are transaction hashes and parent nodes hash their children. Used to prove transaction inclusion efficiently." },
-  { id: 5,  category: "Blockchain Fundamentals", description: "Software that stores your cryptographic keys and signs transactions. Without it you cannot interact with the blockchain." },
-  { id: 6,  category: "Blockchain Fundamentals", description: "12 or 24 randomly chosen words that can regenerate your entire cryptographic key hierarchy. Lose this and lose everything." },
-  { id: 7,  category: "Blockchain Fundamentals", description: "A unit of computational work on the EVM. Every opcode costs some amount. Run out and the transaction reverts." },
-  { id: 8,  category: "Blockchain Fundamentals", description: "One billionth of an Ether (10^9 wei). The standard denomination for transaction fees." },
-  { id: 9,  category: "Blockchain Fundamentals", description: "The smallest indivisible unit of Ether. One ETH equals exactly 10^18 of these." },
-  { id: 10, category: "Blockchain Fundamentals", description: "A backward-incompatible protocol upgrade. Nodes that refuse to upgrade diverge onto a permanent separate chain." },
-  { id: 11, category: "Blockchain Fundamentals", description: "The staging area where valid but unconfirmed transactions wait. Miners and bots watch this pool for opportunity." },
-  { id: 12, category: "Blockchain Fundamentals", description: "A fixed time period in Proof of Stake Ethereum. It consists of 32 slots, each exactly 12 seconds long." },
-  { id: 13, category: "Blockchain Fundamentals", description: "In Proof of Stake, this node proposes blocks and attests to others. Requires exactly 32 ETH staked as collateral." },
-  { id: 14, category: "Blockchain Fundamentals", description: "The act of locking up cryptocurrency to participate in network consensus and earn protocol rewards in return." },
 
-  // ── Cryptography (15-24) ────────────────────────────────────────────────────
-  { id: 15, category: "Cryptography", description: "Ethereum uses this hash function, a variant of SHA-3 developed before the NIST standard was finalized. Outputs 256 bits." },
-  { id: 16, category: "Cryptography", description: "Elliptic Curve Digital Signature Algorithm. The signing scheme that authorizes every Ethereum transaction." },
-  { id: 17, category: "Cryptography", description: "The specific elliptic curve used by both Bitcoin and Ethereum for key generation. Its equation is y² = x³ + 7." },
-  { id: 18, category: "Cryptography", description: "A measure of unpredictability or randomness. Insufficient amounts during key generation make your private key vulnerable." },
-  { id: 19, category: "Cryptography", description: "The original input that produces a given hash output. Finding it for a cryptographically secure function is infeasible." },
-  { id: 20, category: "Cryptography", description: "When two distinct inputs produce the same hash output. A secure hash function must make finding one computationally impossible." },
-  { id: 21, category: "Cryptography", description: "Random data mixed with a password before hashing. Ensures identical passwords produce different hash values." },
-  { id: 22, category: "Cryptography", description: "A precomputed lookup table mapping hash outputs back to their original inputs. Defeated by adding a salt." },
-  { id: 23, category: "Cryptography", description: "A signature scheme adopted in Bitcoin's Taproot upgrade. More efficient and privacy-preserving than ECDSA." },
-  { id: 24, category: "Cryptography", description: "A cryptographic proof that demonstrates knowledge of a secret without revealing anything about the secret itself." },
+  // ── Monad Architecture (0-14) ────────────────────────────────────────────────
+  {
+    id: 0,
+    category: "Monad Architecture",
+    description:
+      "Monad testnet chain ID is 10143. Compute the sum of its decimal digits. Answer: integer.",
+  },
+  {
+    id: 1,
+    category: "Monad Architecture",
+    description:
+      "Monad chain ID 10143 factors as 3^2 x 7^2 x 23. Sum all unique prime factors (3, 7, 23). Answer: integer.",
+  },
+  {
+    id: 2,
+    category: "Monad Architecture",
+    description:
+      "Convert Monad chain ID 10143 to hexadecimal. Answer: uppercase hex string, no 0x prefix.",
+  },
+  {
+    id: 3,
+    category: "Monad Architecture",
+    description:
+      "Monad produces one block every 500 milliseconds. How many complete blocks are produced in exactly 24 hours? Answer: integer.",
+  },
+  {
+    id: 4,
+    category: "Monad Architecture",
+    description:
+      "Monad targets 10,000 TPS with a 500 ms block time. What is the maximum number of transactions per block? Answer: integer.",
+  },
+  {
+    id: 5,
+    category: "Monad Architecture",
+    description:
+      "MonadBFT requires floor(2/3 x N) + 1 validators for consensus. With N = 100 validators, what is the minimum quorum? Answer: integer.",
+  },
+  {
+    id: 6,
+    category: "Monad Architecture",
+    description:
+      "MonadBFT requires floor(2/3 x N) + 1 validators for consensus. With N = 150 validators, what is the minimum quorum? Answer: integer.",
+  },
+  {
+    id: 7,
+    category: "Monad Architecture",
+    description:
+      "Compute the sum of ASCII values of the string 'MONAD'. (M=77, O=79, N=78, A=65, D=68). Answer: integer.",
+  },
+  {
+    id: 8,
+    category: "Monad Architecture",
+    description:
+      "How many 1-bits are in the binary representation of Monad chain ID 10143? Vibe code it. Answer: integer.",
+  },
+  {
+    id: 9,
+    category: "Monad Architecture",
+    description:
+      "Monad uses a 4-phase execution pipeline: Propose, Execute, Commit, Persist. Compute 4 factorial (4!). Answer: integer.",
+  },
+  {
+    id: 10,
+    category: "Monad Architecture",
+    description:
+      "What is Monad chain ID 10143 modulo 256? Answer: integer.",
+  },
+  {
+    id: 11,
+    category: "Monad Architecture",
+    description:
+      "What is the floor of the square root of Monad chain ID 10143? Answer: integer.",
+  },
+  {
+    id: 12,
+    category: "Monad Architecture",
+    description:
+      "Compute 10143 squared, then take the result modulo 10000. Answer: integer.",
+  },
+  {
+    id: 13,
+    category: "Monad Architecture",
+    description:
+      "Sum the squares of each digit in Monad chain ID 10143: (1^2 + 0^2 + 1^2 + 4^2 + 3^2). Answer: integer.",
+  },
+  {
+    id: 14,
+    category: "Monad Architecture",
+    description:
+      "How many bits are needed to represent 10143 in binary? (length of its binary string). Answer: integer.",
+  },
 
-  // ── EVM Deep Dive (25-39) ───────────────────────────────────────────────────
-  { id: 25, category: "EVM Deep Dive", description: "A single instruction executed by the Ethereum Virtual Machine. ADD, PUSH1, SLOAD, and JUMP are all examples." },
-  { id: 26, category: "EVM Deep Dive", description: "The raw input bytes sent with a transaction or contract call. It encodes the function selector and its arguments." },
-  { id: 27, category: "EVM Deep Dive", description: "The persistent key-value store in a smart contract. A single write costs 20,000+ gas. Persists across calls forever." },
-  { id: 28, category: "EVM Deep Dive", description: "Temporary byte-array space available during EVM execution. It is wiped after the call ends and is cheaper than storage." },
-  { id: 29, category: "EVM Deep Dive", description: "The EVM executes all arithmetic on this last-in-first-out data structure. Max depth 1024. Each slot is 256 bits wide." },
-  { id: 30, category: "EVM Deep Dive", description: "Application Binary Interface. Defines how to encode function calls and decode return values for smart contracts." },
-  { id: 31, category: "EVM Deep Dive", description: "The first 4 bytes of keccak256(function_signature). The EVM uses this to route calls to the correct function." },
-  { id: 32, category: "EVM Deep Dive", description: "A contract mechanism for broadcasting information. Stored in transaction logs. Indexed and queryable off-chain." },
-  { id: 33, category: "EVM Deep Dive", description: "A Solidity keyword that wraps function logic with reusable preconditions. The onlyOwner pattern uses this." },
-  { id: 34, category: "EVM Deep Dive", description: "A Solidity data structure for O(1) key-value lookups. It cannot be iterated. Unset keys return the zero value." },
-  { id: 35, category: "EVM Deep Dive", description: "Write raw EVM bytecode instructions inline inside a Solidity contract using this block-level keyword." },
-  { id: 36, category: "EVM Deep Dive", description: "Execute another contract's code while maintaining your own storage context and msg.sender. Proxy patterns depend on this." },
-  { id: 37, category: "EVM Deep Dive", description: "An EVM call type that cannot modify state. Any attempt to SSTORE inside one causes the entire call to revert." },
-  { id: 38, category: "EVM Deep Dive", description: "Halt execution and undo all state changes from this call. Returns remaining gas (post EIP-140)." },
-  { id: 39, category: "EVM Deep Dive", description: "EVM opcode that returns the size of an address's deployed bytecode. Returns 0 for externally owned accounts." },
+  // ── Monad Math (15-34) ──────────────────────────────────────────────────────
+  {
+    id: 15,
+    category: "Monad Math",
+    description:
+      "Find the sum of all positive multiples of 7 that are less than or equal to 10143 (Monad chain ID). Vibe code it. Answer: integer.",
+  },
+  {
+    id: 16,
+    category: "Monad Math",
+    description:
+      "How many integers from 1 to 10143 are divisible by both 3 and 7 (i.e. divisible by 21)? Answer: integer.",
+  },
+  {
+    id: 17,
+    category: "Monad Math",
+    description:
+      "Reverse the decimal digits of Monad chain ID 10143. Answer: integer.",
+  },
+  {
+    id: 18,
+    category: "Monad Math",
+    description:
+      "Convert Monad chain ID 10143 to octal (base 8). Vibe code it. Answer: octal digits as string.",
+  },
+  {
+    id: 19,
+    category: "Monad Math",
+    description:
+      "Compute the Greatest Common Divisor of 10143 (Monad chain ID) and 10000 using the Euclidean algorithm. Answer: integer.",
+  },
+  {
+    id: 20,
+    category: "Monad Math",
+    description:
+      "Compute the Least Common Multiple of 10143 (Monad chain ID) and 500 (Monad block time in ms). Vibe code it. Answer: integer.",
+  },
+  {
+    id: 21,
+    category: "Monad Math",
+    description:
+      "Find the digital root of 10143: repeatedly sum its digits until a single digit remains. Answer: integer.",
+  },
+  {
+    id: 22,
+    category: "Monad Math",
+    description:
+      "Compute the sum of all even integers from 2 to 10142 (the largest even number less than or equal to Monad chain ID 10143). Vibe code it. Answer: integer.",
+  },
+  {
+    id: 23,
+    category: "Monad Math",
+    description:
+      "Monad block time is 500 ms. How many complete blocks are produced in exactly 1 hour (3,600,000 ms)? Answer: integer.",
+  },
+  {
+    id: 24,
+    category: "Monad Math",
+    description:
+      "Compute the bitwise XOR of 10143 (Monad chain ID) and 5000. Vibe code it. Answer: integer.",
+  },
+  {
+    id: 25,
+    category: "Monad Math",
+    description:
+      "Multiply 10143 (chain ID) by 500 (block time ms). Sum the decimal digits of that product. Answer: integer.",
+  },
+  {
+    id: 26,
+    category: "Monad Math",
+    description:
+      "Compute floor(10143 / 7). Answer: integer.",
+  },
+  {
+    id: 27,
+    category: "Monad Math",
+    description:
+      "Find the sum of all Fibonacci numbers that are less than or equal to 10143. (F1=1, F2=1, F3=2, ...). Vibe code it. Answer: integer.",
+  },
+  {
+    id: 28,
+    category: "Monad Math",
+    description:
+      "Compute the sum of all perfect squares from 1^2 to 100^2. Formula: n*(n+1)*(2n+1)/6 with n=100. Answer: integer.",
+  },
+  {
+    id: 29,
+    category: "Monad Math",
+    description:
+      "How many perfect squares (1, 4, 9, 16, ...) are less than or equal to Monad chain ID 10143? Answer: integer.",
+  },
+  {
+    id: 30,
+    category: "Monad Math",
+    description:
+      "Convert Monad chain ID 10143 to base 3 (ternary). Vibe code it. Answer: ternary digits as string.",
+  },
+  {
+    id: 31,
+    category: "Monad Math",
+    description:
+      "Find the 1-based index of the first Fibonacci number strictly greater than Monad chain ID 10143. (F1=1, F2=1, ...). Vibe code it. Answer: integer.",
+  },
+  {
+    id: 32,
+    category: "Monad Math",
+    description:
+      "Using the Sieve of Eratosthenes, find the sum of all prime numbers strictly less than 100. Vibe code it. Answer: integer.",
+  },
+  {
+    id: 33,
+    category: "Monad Math",
+    description:
+      "Compute the 10143rd triangular number: T(n) = n*(n+1)/2, where n = 10143. Vibe code it. Answer: integer.",
+  },
+  {
+    id: 34,
+    category: "Monad Math",
+    description:
+      "Compute the sum of all integers from 1 to 500 (Monad block time value in ms). Answer: integer.",
+  },
 
-  // ── DeFi (40-49) ────────────────────────────────────────────────────────────
-  { id: 40, category: "DeFi", description: "What automated market makers require from depositors to function. Providers earn a share of every trading fee." },
-  { id: 41, category: "DeFi", description: "The difference between the expected execution price and the actual price. Grows as trade size increases relative to pool depth." },
-  { id: 42, category: "DeFi", description: "Borrow any amount from a lending protocol with zero collateral — as long as you repay it within the same transaction." },
-  { id: 43, category: "DeFi", description: "A data feed that bridges real-world information to smart contracts. Chainlink is the dominant provider of this." },
-  { id: 44, category: "DeFi", description: "Exploiting price differences between two or more markets for risk-free profit. In crypto, bots execute this in milliseconds." },
-  { id: 45, category: "DeFi", description: "An MEV attack: buy before a large detected pending trade, then sell immediately after it executes at a higher price." },
-  { id: 46, category: "DeFi", description: "Copy a profitable pending transaction from the mempool and resubmit it with higher gas to execute it first." },
-  { id: 47, category: "DeFi", description: "A smart contract that holds assets and automatically executes yield-generating strategies on behalf of depositors." },
-  { id: 48, category: "DeFi", description: "The return generated on deposited or staked assets. Typically expressed as an annual percentage rate." },
-  { id: 49, category: "DeFi", description: "Maximal Extractable Value. Profit miners or validators capture by reordering, including, or excluding transactions." },
+  // ── Monad Cryptography (35-49) ──────────────────────────────────────────────
+  {
+    id: 35,
+    category: "Monad Cryptography",
+    description:
+      "Compute keccak256 of the UTF-8 string 'monad' (all lowercase). Return the first 8 hex characters of the hash output. Answer: 8 lowercase hex chars, no 0x prefix.",
+  },
+  {
+    id: 36,
+    category: "Monad Cryptography",
+    description:
+      "Compute keccak256 of the UTF-8 string 'chain_detective'. Return the first 8 hex characters. Answer: 8 lowercase hex chars, no 0x prefix.",
+  },
+  {
+    id: 37,
+    category: "Monad Cryptography",
+    description:
+      "Compute keccak256 of the UTF-8 string 'vibecode'. Return the first 8 hex characters. Answer: 8 lowercase hex chars, no 0x prefix.",
+  },
+  {
+    id: 38,
+    category: "Monad Cryptography",
+    description:
+      "Compute keccak256 of the UTF-8 string 'monad:10143'. Return the first 8 hex characters. Answer: 8 lowercase hex chars, no 0x prefix.",
+  },
+  {
+    id: 39,
+    category: "Monad Cryptography",
+    description:
+      "Compute keccak256 of the UTF-8 string 'parallel_evm'. Return the first 8 hex characters. Answer: 8 lowercase hex chars, no 0x prefix.",
+  },
+  {
+    id: 40,
+    category: "Monad Cryptography",
+    description:
+      "Encode the string 'MONAD' as ASCII hexadecimal. Each character maps to its hex byte: M=4D, O=4F, N=4E, A=41, D=44. Concatenate all hex pairs. Answer: uppercase hex string, no spaces or 0x prefix.",
+  },
+  {
+    id: 41,
+    category: "Monad Cryptography",
+    description:
+      "Compute the sum of the ASCII decimal values of each character in 'ETH': E=69, T=84, H=72. Answer: integer.",
+  },
+  {
+    id: 42,
+    category: "Monad Cryptography",
+    description:
+      "Compute keccak256 of the UTF-8 string 'MonadBFT' (capital M, capital B, F, T). Return the first 8 hex characters. Answer: 8 lowercase hex chars, no 0x prefix.",
+  },
+  {
+    id: 43,
+    category: "Monad Cryptography",
+    description:
+      "Encode the 3-character string 'MON' using standard Base64. Vibe code it. Answer: 4-character Base64 string.",
+  },
+  {
+    id: 44,
+    category: "Monad Cryptography",
+    description:
+      "Compute keccak256 of the UTF-8 string 'leaderboard'. Return the first 8 hex characters. Answer: 8 lowercase hex chars, no 0x prefix.",
+  },
+  {
+    id: 45,
+    category: "Monad Cryptography",
+    description:
+      "The SHA-256 hash of the empty string '' starts with byte 0xe3. What is 0xe3 expressed as a decimal integer? Answer: integer.",
+  },
+  {
+    id: 46,
+    category: "Monad Cryptography",
+    description:
+      "Compute keccak256 of the UTF-8 string 'commit_reveal'. Return the first 8 hex characters. Answer: 8 lowercase hex chars, no 0x prefix.",
+  },
+  {
+    id: 47,
+    category: "Monad Cryptography",
+    description:
+      "Compute keccak256 of the UTF-8 string 'season_01'. Return the first 8 hex characters. Answer: 8 lowercase hex chars, no 0x prefix.",
+  },
+  {
+    id: 48,
+    category: "Monad Cryptography",
+    description:
+      "Monad chain ID 10143 in hex is 0x279F. XOR the two byte values 0x27 and 0x9F. Return the result as a decimal integer. Answer: integer.",
+  },
+  {
+    id: 49,
+    category: "Monad Cryptography",
+    description:
+      "Compute keccak256 of the UTF-8 string 'prize_pool'. Return the first 8 hex characters. Answer: 8 lowercase hex chars, no 0x prefix.",
+  },
 
-  // ── Monad Architecture (50-59) ──────────────────────────────────────────────
-  { id: 50, category: "Monad Architecture", description: "A high-performance EVM-compatible Layer 1 with parallel transaction execution. This entire ARG runs on its testnet." },
-  { id: 51, category: "Monad Architecture", description: "Monad executes transactions this way — concurrently, not sequentially. This is the core innovation enabling 10,000 TPS." },
-  { id: 52, category: "Monad Architecture", description: "Monad's block processing technique inspired by CPU architecture: execution, consensus, and storage overlap simultaneously." },
-  { id: 53, category: "Monad Architecture", description: "The current deployment phase of Monad. Free to use, not production-ready, and where this ARG is live." },
-  { id: 54, category: "Monad Architecture", description: "Monad's signature brand color. Also the dominant hue of this interface and the glow behind every neon element." },
-  { id: 55, category: "Monad Architecture", description: "Monad delays state finalization until after speculative execution of multiple blocks. This describes that execution model." },
-  { id: 56, category: "Monad Architecture", description: "The process by which distributed nodes agree on the canonical state of the chain. MonadBFT implements this." },
-  { id: 57, category: "Monad Architecture", description: "Once achieved, a block cannot be reorganized or reverted. The ultimate goal of every consensus protocol." },
-  { id: 58, category: "Monad Architecture", description: "In pre-Merge Ethereum, a valid block that was mined correctly but not included in the main chain. Also called an ommer." },
-  { id: 59, category: "Monad Architecture", description: "A periodic state snapshot that allows nodes to sync from a trusted recent point rather than the genesis block." },
+  // ── Monad Economics (50-59) ─────────────────────────────────────────────────
+  {
+    id: 50,
+    category: "Monad Economics",
+    description:
+      "At 52 gwei per gas, 21000 gas per transaction, and 10,000 TPS, compute the total gwei burned in exactly 60 seconds. Vibe code it. Answer: integer.",
+  },
+  {
+    id: 51,
+    category: "Monad Economics",
+    description:
+      "Monad block time is 500 ms. How many seconds pass from block 0 until block 1,000,000 is produced? Answer: integer.",
+  },
+  {
+    id: 52,
+    category: "Monad Economics",
+    description:
+      "At 1 gwei per gas, 21000 gas per transaction, and 10,000 TPS, compute the total gwei collected as fees in exactly 24 hours (86,400 seconds). Vibe code it. Answer: integer.",
+  },
+  {
+    id: 53,
+    category: "Monad Economics",
+    description:
+      "Monad targets 10,000 transactions per second. How many transactions does it process in exactly 1 hour (3,600 seconds)? Answer: integer.",
+  },
+  {
+    id: 54,
+    category: "Monad Economics",
+    description:
+      "Monad produces 172,800 blocks per day. If each block averages 500 bytes, what is the total daily data in kilobytes? (1 KB = 1024 bytes, integer division). Answer: integer.",
+  },
+  {
+    id: 55,
+    category: "Monad Economics",
+    description:
+      "Monad processes 10,000 TPS. Ethereum L1 processes 15 TPS. How many more transactions does Monad handle in exactly 1 hour? Answer: integer.",
+  },
+  {
+    id: 56,
+    category: "Monad Economics",
+    description:
+      "Monad block time is 500 ms. After exactly 1,000 blocks, how many complete minutes have elapsed? Use floor division. Answer: integer.",
+  },
+  {
+    id: 57,
+    category: "Monad Economics",
+    description:
+      "Monad targets 10,000 TPS. Ethereum L1 achieves approximately 15 TPS. Compute floor(10000 / 15). Answer: integer.",
+  },
+  {
+    id: 58,
+    category: "Monad Economics",
+    description:
+      "Monad block time is 500 ms. How many seconds must you wait to receive exactly 100 block confirmations? Answer: integer.",
+  },
+  {
+    id: 59,
+    category: "Monad Economics",
+    description:
+      "Monad's parallel EVM uses 4 execution threads. If 12,000 transactions are split equally across all threads, how many does each thread process? Answer: integer.",
+  },
 
-  // ── Bitcoin & Tokens (60-69) ────────────────────────────────────────────────
-  { id: 60, category: "Bitcoin & Tokens", description: "The original cryptocurrency. Genesis block mined January 3, 2009, by Satoshi Nakamoto. Ticker: BTC." },
-  { id: 61, category: "Bitcoin & Tokens", description: "Approximately every 4 years, Bitcoin's block reward is cut in half. This event drives supply scarcity." },
-  { id: 62, category: "Bitcoin & Tokens", description: "In Proof of Work, this network parameter adjusts every 2016 blocks to maintain approximately 10-minute block times." },
-  { id: 63, category: "Bitcoin & Tokens", description: "In Proof of Work, the block hash must numerically be less than this value. A lower value means a harder puzzle." },
-  { id: 64, category: "Bitcoin & Tokens", description: "New cryptocurrency issued to miners or validators per block. For Bitcoin it started at 50 BTC and halves every 210,000 blocks." },
-  { id: 65, category: "Bitcoin & Tokens", description: "The Ethereum standard for fungible tokens. Defines transfer, approve, transferFrom, and allowance functions." },
-  { id: 66, category: "Bitcoin & Tokens", description: "The Ethereum standard for non-fungible tokens. Each token ID is unique and cannot be split. Used for NFTs." },
-  { id: 67, category: "Bitcoin & Tokens", description: "The Ethereum standard for multi-token contracts. Handles fungible and non-fungible tokens in a single deployment." },
-  { id: 68, category: "Bitcoin & Tokens", description: "A token designed to maintain a stable value, typically pegged 1:1 to USD. USDC and DAI are the largest examples." },
-  { id: 69, category: "Bitcoin & Tokens", description: "Tokens that grant holders voting rights over protocol parameters, upgrades, and treasury decisions." },
+  // ── EVM & Solidity (60-74) ──────────────────────────────────────────────────
+  {
+    id: 60,
+    category: "EVM & Solidity",
+    description:
+      "What is the maximum value of a Solidity uint8? (2^8 - 1). Answer: integer.",
+  },
+  {
+    id: 61,
+    category: "EVM & Solidity",
+    description:
+      "What is the maximum value of a Solidity uint16? (2^16 - 1). Answer: integer.",
+  },
+  {
+    id: 62,
+    category: "EVM & Solidity",
+    description:
+      "An Ethereum address is 20 bytes. How many hexadecimal characters represent a full address, excluding the 0x prefix? Answer: integer.",
+  },
+  {
+    id: 63,
+    category: "EVM & Solidity",
+    description:
+      "A Solidity bytes32 value: how many hexadecimal characters does it occupy, excluding the 0x prefix? Answer: integer.",
+  },
+  {
+    id: 64,
+    category: "EVM & Solidity",
+    description:
+      "keccak256 produces a hash of N bits. What is N? Answer: integer.",
+  },
+  {
+    id: 65,
+    category: "EVM & Solidity",
+    description:
+      "The EVM stack has a maximum depth of 1024 slots, each 32 bytes wide. What is the total maximum stack size in bytes? Answer: integer.",
+  },
+  {
+    id: 66,
+    category: "EVM & Solidity",
+    description:
+      "A Solidity function selector is the first N bytes of keccak256(function_signature). What is N? Answer: integer.",
+  },
+  {
+    id: 67,
+    category: "EVM & Solidity",
+    description:
+      "Compute the function selector for 'transfer(address,uint256)': first 4 bytes of keccak256 of that exact string. Return as 8 lowercase hex characters, no 0x prefix. Vibe code it. Answer: 8 lowercase hex chars.",
+  },
+  {
+    id: 68,
+    category: "EVM & Solidity",
+    description:
+      "How many bytes does a Solidity uint256 occupy in a storage slot? Answer: integer.",
+  },
+  {
+    id: 69,
+    category: "EVM & Solidity",
+    description:
+      "The EVM opcode PUSH1 has the hex value 0x60. What is its decimal value? Answer: integer.",
+  },
+  {
+    id: 70,
+    category: "EVM & Solidity",
+    description:
+      "A transaction performs 10 warm SLOAD operations (800 gas each) and 5 warm SSTORE operations (100 gas each). What is the total gas cost for just these operations? Answer: integer.",
+  },
+  {
+    id: 71,
+    category: "EVM & Solidity",
+    description:
+      "Solidity packs variables into 32-byte slots when possible. If you declare 4 consecutive uint64 variables (each 8 bytes), how many 32-byte storage slots do they occupy? Answer: integer.",
+  },
+  {
+    id: 72,
+    category: "EVM & Solidity",
+    description:
+      "A transaction: 21,000 gas base fee + 10 non-zero calldata bytes (16 gas each) + 5 zero calldata bytes (4 gas each). What is the total gas cost? Answer: integer.",
+  },
+  {
+    id: 73,
+    category: "EVM & Solidity",
+    description:
+      "keccak256 of the empty string starts with byte 0xc5. What is the decimal value of 0xc5? Answer: integer.",
+  },
+  {
+    id: 74,
+    category: "EVM & Solidity",
+    description:
+      "The EVM word size is 32 bytes. How many complete 32-byte words fit inside exactly 1 kilobyte (1024 bytes)? Answer: integer.",
+  },
 
-  // ── Security & Keys (70-79) ─────────────────────────────────────────────────
-  { id: 70, category: "Security & Keys", description: "An attack where a malicious contract re-enters the calling contract before balances are updated. Drained The DAO in 2016." },
-  { id: 71, category: "Security & Keys", description: "A malicious exit where developers drain protocol liquidity and abandon the project. Also called an exit scam." },
-  { id: 72, category: "Security & Keys", description: "A network attack where one entity creates many fake identities to gain disproportionate influence. Named after a 1973 novel." },
-  { id: 73, category: "Security & Keys", description: "A network attack isolating a specific node by controlling all of its peers, cutting it off from the honest network." },
-  { id: 74, category: "Security & Keys", description: "A secret 256-bit number that is the root of your blockchain identity. Anyone who has it controls your funds forever." },
-  { id: 75, category: "Security & Keys", description: "Derived from the private key via elliptic curve multiplication. Can be shared freely. Used to verify signatures." },
-  { id: 76, category: "Security & Keys", description: "A cryptographic proof that a specific private key signed a specific message. In Ethereum it has components r, s, and v." },
-  { id: 77, category: "Security & Keys", description: "The last 20 bytes of keccak256(public_key). Your on-chain identity. Always starts with 0x on Ethereum." },
-  { id: 78, category: "Security & Keys", description: "The compiled low-level instructions deployed on-chain when you publish a smart contract. Stored at the contract address." },
-  { id: 79, category: "Security & Keys", description: "A contract pattern that delegates all calls to an implementation contract. Enables upgradeable smart contracts." },
+  // ── Bitcoin & Ethereum (75-84) ──────────────────────────────────────────────
+  {
+    id: 75,
+    category: "Bitcoin & Ethereum",
+    description:
+      "Bitcoin block reward started at 50 BTC. After the 4th halving it is 50 / 2^4 BTC. Express that value in satoshi (1 BTC = 100,000,000 satoshi). Answer: integer.",
+  },
+  {
+    id: 76,
+    category: "Bitcoin & Ethereum",
+    description:
+      "Ethereum targets a 12-second block time. How many complete blocks are produced in exactly 24 hours (86,400 seconds)? Answer: integer.",
+  },
+  {
+    id: 77,
+    category: "Bitcoin & Ethereum",
+    description:
+      "Bitcoin genesis block contained the message 'The Times 03/Jan/2009'. Count the exact number of characters in that string (no quotes). Answer: integer.",
+  },
+  {
+    id: 78,
+    category: "Bitcoin & Ethereum",
+    description:
+      "Bitcoin total supply is capped at 21,000,000 BTC. Express the entire supply in satoshi (1 BTC = 100,000,000 satoshi). Vibe code it. Answer: integer.",
+  },
+  {
+    id: 79,
+    category: "Bitcoin & Ethereum",
+    description:
+      "An Ethereum address string with the '0x' prefix has how many total characters? (2 prefix chars + 40 hex chars). Answer: integer.",
+  },
+  {
+    id: 80,
+    category: "Bitcoin & Ethereum",
+    description:
+      "SHA-256 produces a hash output of N bits. What is N? Answer: integer.",
+  },
+  {
+    id: 81,
+    category: "Bitcoin & Ethereum",
+    description:
+      "Bitcoin difficulty adjusts every 2,016 blocks. If miners find each block in exactly 10 minutes, how many hours does one full adjustment period last? Answer: integer.",
+  },
+  {
+    id: 82,
+    category: "Bitcoin & Ethereum",
+    description:
+      "A Merkle tree is built from 8 leaf nodes arranged in a complete binary tree. Count the total number of nodes (leaves + all internal nodes + root). Answer: integer.",
+  },
+  {
+    id: 83,
+    category: "Bitcoin & Ethereum",
+    description:
+      "EIP-1559 burns the base fee. If base fee = 10 gwei, each tx uses 21,000 gas, and a block contains 1,000 transactions, how many gwei are burned in that one block? Answer: integer.",
+  },
+  {
+    id: 84,
+    category: "Bitcoin & Ethereum",
+    description:
+      "Ethereum mainnet chain ID = 1. Ethereum Sepolia testnet chain ID = 11155111. What is their sum? Answer: integer.",
+  },
 
-  // ── Cipher Puzzles (80-89) ──────────────────────────────────────────────────
-  { id: 80, category: "Cipher Puzzles", description: "CIPHER CHALLENGE — Decode the following hexadecimal string to reveal a core blockchain unit. Hex: 0x424c4f434b" },
-  { id: 81, category: "Cipher Puzzles", description: "CIPHER CHALLENGE — Decode the following hexadecimal string to reveal what links blocks together. Hex: 0x434841494e" },
-  { id: 82, category: "Cipher Puzzles", description: "CIPHER CHALLENGE — Convert each binary byte to ASCII to find a participant in the P2P network. Binary: 01001110 01001111 01000100 01000101" },
-  { id: 83, category: "Cipher Puzzles", description: "CIPHER CHALLENGE — Apply ROT13 to decode this string. The answer is what you write smart contracts in. Encoded: PBQR" },
-  { id: 84, category: "Cipher Puzzles", description: "CIPHER CHALLENGE — Each letter is shifted +3 in the alphabet (Caesar cipher). Decode to find what validators do with ETH. Encoded: VWDNH" },
-  { id: 85, category: "Cipher Puzzles", description: "CIPHER CHALLENGE — Reverse this string to reveal the smart contract development framework used in this project. Reversed: EGROF" },
-  { id: 86, category: "Cipher Puzzles", description: "CIPHER CHALLENGE — Unscramble this anagram to find a node type that forwards transactions between networks. Anagram: EARLY" },
-  { id: 87, category: "Cipher Puzzles", description: "CIPHER CHALLENGE — Convert these ASCII decimal codes to characters to reveal a blockchain split event. Codes: 70 79 82 75" },
-  { id: 88, category: "Cipher Puzzles", description: "CIPHER CHALLENGE — Decode the Morse code to find the blockchain synonym for an immutable record book. Morse: .-.. . -.. --. . .-." },
-  { id: 89, category: "Cipher Puzzles", description: "CIPHER CHALLENGE — Reverse this string to find the entity that secures a Proof of Work blockchain. Reversed: RENIM" },
-
-  // ── Core Properties (90-99) ─────────────────────────────────────────────────
-  { id: 90, category: "Core Properties", description: "Smart contracts cannot be altered after deployment. This single adjective describes that foundational property." },
-  { id: 91, category: "Core Properties", description: "You do not need to trust a counterparty — cryptographic math and code enforce the rules. This adjective describes that property." },
-  { id: 92, category: "Core Properties", description: "Anyone can use the network, deploy contracts, or submit transactions without requesting access from any authority." },
-  { id: 93, category: "Core Properties", description: "DeFi protocols can be combined like building blocks. A single atomic transaction can touch a flash loan, a DEX, and a vault." },
-  { id: 94, category: "Core Properties", description: "Every transaction and every byte of contract code is visible on the blockchain to any observer in the world." },
-  { id: 95, category: "Core Properties", description: "Blockchains are designed to resist this — the act of selectively blocking or delaying specific transactions." },
-  { id: 96, category: "Core Properties", description: "No single server, company, or authority controls the network. Thousands of independent nodes collectively hold the state." },
-  { id: 97, category: "Core Properties", description: "The EVM always produces the same output for the same input, on every node, everywhere. This single adjective describes it." },
-  { id: 98, category: "Core Properties", description: "The core consensus problem in distributed systems: reaching agreement even when some participants actively lie or fail. Adjective form." },
-  { id: 99, category: "Core Properties", description: "FINAL PUZZLE — The Russian-Canadian prodigy who conceived Ethereum at age 19 and published its whitepaper in 2013. First name only." },
+  // ── Pure Algorithms (85-99) ─────────────────────────────────────────────────
+  {
+    id: 85,
+    category: "Pure Algorithms",
+    description:
+      "Use the Sieve of Eratosthenes to find all prime numbers up to and including 1000. Compute their sum. Vibe code it. Answer: integer.",
+  },
+  {
+    id: 86,
+    category: "Pure Algorithms",
+    description:
+      "Sort the array [64, 34, 25, 12, 22, 11, 90] in ascending order. Return the element at 0-based index 3. Answer: integer.",
+  },
+  {
+    id: 87,
+    category: "Pure Algorithms",
+    description:
+      "Find the length of the Longest Increasing Subsequence in [10, 9, 2, 5, 3, 7, 101, 18]. Vibe code it. Answer: integer.",
+  },
+  {
+    id: 88,
+    category: "Pure Algorithms",
+    description:
+      "Using dynamic programming (coin change), find the minimum number of coins from denominations [1, 5, 6, 9] needed to make exactly 11. Answer: integer.",
+  },
+  {
+    id: 89,
+    category: "Pure Algorithms",
+    description:
+      "Apply binary search on sorted array [2, 5, 8, 12, 16, 23, 38, 56, 72, 91] to find value 23. Count total comparisons including the successful one. Answer: integer.",
+  },
+  {
+    id: 90,
+    category: "Pure Algorithms",
+    description:
+      "Find the length of the longest substring without repeating characters in the string 'abcabcabc'. Answer: integer.",
+  },
+  {
+    id: 91,
+    category: "Pure Algorithms",
+    description:
+      "Sort array [3,1,4,1,5,9,2,6,5,3,5] in ascending order. Sum all elements at even 0-based indices (positions 0, 2, 4, 6, 8, 10). Vibe code it. Answer: integer.",
+  },
+  {
+    id: 92,
+    category: "Pure Algorithms",
+    description:
+      "Compute the 30th Fibonacci number where F(1)=1 and F(2)=1. Vibe code it. Answer: integer.",
+  },
+  {
+    id: 93,
+    category: "Pure Algorithms",
+    description:
+      "Compute 15 factorial (15!). Vibe code it. Answer: integer.",
+  },
+  {
+    id: 94,
+    category: "Pure Algorithms",
+    description:
+      "How many ways can you choose 3 items from a set of 10? Compute the binomial coefficient C(10, 3). Answer: integer.",
+  },
+  {
+    id: 95,
+    category: "Pure Algorithms",
+    description:
+      "Tower of Hanoi: find the minimum number of moves required to transfer 10 disks from peg A to peg C. Formula: 2^n - 1. Answer: integer.",
+  },
+  {
+    id: 96,
+    category: "Pure Algorithms",
+    description:
+      "Compute the Levenshtein edit distance between the strings 'MONAD' and 'NOMAD'. Vibe code it. Answer: integer.",
+  },
+  {
+    id: 97,
+    category: "Pure Algorithms",
+    description:
+      "Apply Kadane's algorithm to find the maximum subarray sum in [-2, 1, -3, 4, -1, 2, 1, -5, 4]. Vibe code it. Answer: integer.",
+  },
+  {
+    id: 98,
+    category: "Pure Algorithms",
+    description:
+      "Reverse the order of words in 'the quick brown fox' (words separated by single spaces). Count the total characters in the result string, including spaces. Answer: integer.",
+  },
+  {
+    id: 99,
+    category: "Pure Algorithms",
+    description:
+      "FINAL MISSION — Count distinct ways to tile a 2x10 grid using 1x2 dominoes. Use DP: f(1)=1, f(2)=2, f(n)=f(n-1)+f(n-2). Vibe code it. Answer: integer.",
+  },
 ];
 
 export const PUZZLE_COUNT = PUZZLE_META.length; // 100
 
 export const CATEGORY_COLORS: Record<PuzzleCategory, string> = {
-  "Blockchain Fundamentals": "#6E54FF",
-  "Cryptography":            "#FF8EE4",
-  "EVM Deep Dive":           "#85E6FF",
-  "DeFi":                    "#FFAE45",
-  "Monad Architecture":      "#A78BFA",
-  "Bitcoin & Tokens":        "#F97316",
-  "Security & Keys":         "#EF4444",
-  "Cipher Puzzles":          "#10B981",
-  "Core Properties":         "#F59E0B",
+  "Monad Architecture":  "#6E54FF",
+  "Monad Math":          "#85E6FF",
+  "Monad Cryptography":  "#FF8EE4",
+  "Monad Economics":     "#FFAE45",
+  "EVM & Solidity":      "#4ECDC4",
+  "Bitcoin & Ethereum":  "#F97316",
+  "Pure Algorithms":     "#10B981",
 };
 
 export function getPuzzleMeta(id: number): PuzzleMeta | undefined {

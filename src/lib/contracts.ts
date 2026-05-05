@@ -1,13 +1,18 @@
-import type { Abi } from 'viem'
-import ARGGameABI from './abi/ARGGame.json'
-import PuzzleChainABI from './abi/PuzzleChain.json'
-import PlayerRegistryABI from './abi/PlayerRegistry.json'
+export { puzzleChainAbi }    from './abi/PuzzleChain'
+export { argGameAbi }        from './abi/ARGGame'
+export { playerRegistryAbi } from './abi/PlayerRegistry'
 
-// MED-04: validate all required env vars at module load time.
-// Missing vars cause a clear error instead of a silent undefined address.
+const ZERO_ADDR = "0x0000000000000000000000000000000000000000" as `0x${string}`
+
 function requireEnv(name: string, val: string | undefined): `0x${string}` {
-  if (!val) throw new Error(`Missing required env var: ${name}`)
-  if (!/^0x[a-fA-F0-9]{40}$/.test(val)) throw new Error(`Env var ${name} must be a valid Ethereum address (0x + 40 hex chars)`)
+  if (!val) {
+    console.error(`[contracts] Missing env var ${name} — contract calls will fail. Set it in .env.local.`)
+    return ZERO_ADDR
+  }
+  if (!/^0x[a-fA-F0-9]{40}$/.test(val)) {
+    console.error(`[contracts] Env var ${name} is not a valid Ethereum address: "${val}"`)
+    return ZERO_ADDR
+  }
   return val as `0x${string}`
 }
 
@@ -17,6 +22,12 @@ export const CONTRACT_ADDRESSES = {
   playerRegistry: requireEnv('NEXT_PUBLIC_PLAYER_REGISTRY', process.env.NEXT_PUBLIC_PLAYER_REGISTRY),
 }
 
-export const argGameAbi        = ARGGameABI as Abi
-export const puzzleChainAbi    = PuzzleChainABI as Abi
-export const playerRegistryAbi = PlayerRegistryABI as Abi
+// Detect duplicate addresses (copy-paste misconfiguration)
+const seen = new Set<string>()
+for (const [name, addr] of Object.entries(CONTRACT_ADDRESSES)) {
+  const key = addr.toLowerCase()
+  if (seen.has(key)) {
+    console.error(`[contracts] Duplicate address for ${name}: ${addr} — check your env vars`)
+  }
+  seen.add(key)
+}

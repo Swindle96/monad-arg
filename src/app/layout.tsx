@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, Roboto_Mono, Syne } from "next/font/google";
+import { Inter, Roboto_Mono, Syne, Special_Elite } from "next/font/google";
 import "./globals.css";
 import Providers from "./providers";
 import Navbar from "@/components/Navbar";
@@ -26,22 +26,40 @@ const robotoMono = Roboto_Mono({
   display: "swap",
 });
 
+const specialElite = Special_Elite({
+  weight: ["400"],
+  subsets: ["latin"],
+  variable: "--font-special-elite",
+  display: "swap",
+});
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://chaindetective.xyz";
+
 export const metadata: Metadata = {
-  title: "CHAIN_DETECTIVE — On-Chain ARG on Monad Testnet",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "CHAIN_DETECTIVE — On-Chain ARG on Monad Testnet",
+    template: "%s | CHAIN_DETECTIVE",
+  },
   description:
     "The clues are hidden in the blockchain. Decode transactions, solve cryptographic puzzles, and claim the prize pool. An on-chain ARG running on Monad Testnet.",
-  keywords: ["ARG", "blockchain", "puzzle", "Monad", "crypto", "web3", "detective"],
+  keywords: ["ARG", "alternate reality game", "blockchain puzzle", "Monad testnet", "crypto detective", "web3 game", "on-chain"],
+  authors: [{ name: "CHAIN_DETECTIVE" }],
+  robots: { index: true, follow: true, googleBot: { index: true, follow: true, "max-image-preview": "large" } },
   openGraph: {
-    title: "CHAIN_DETECTIVE",
-    description: "The clues are hidden in the blockchain. Find them.",
+    title: "CHAIN_DETECTIVE — On-Chain ARG on Monad Testnet",
+    description: "The clues are hidden in the blockchain. Decode transactions, solve puzzles, claim the prize pool.",
     type: "website",
     siteName: "CHAIN_DETECTIVE",
+    url: SITE_URL,
   },
   twitter: {
     card: "summary_large_image",
     title: "CHAIN_DETECTIVE",
     description: "The clues are hidden in the blockchain. Find them.",
+    creator: "@chaindetective",
   },
+  alternates: { canonical: SITE_URL },
 };
 
 export default function RootLayout({
@@ -51,10 +69,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="scanlines">
-      <body className={`${syne.variable} ${inter.variable} ${robotoMono.variable}`}>
-        {/* Fixed background layers — always behind everything */}
-        <div className="rift-bg" aria-hidden="true" />
-        <div className="rift-grid" aria-hidden="true" />
+      <body
+        className={`${syne.variable} ${inter.variable} ${robotoMono.variable} ${specialElite.variable}`}
+      >
+        {/* Fixed background layers */}
+        <div className="rift-bg"    aria-hidden="true" />
+        <div className="rift-grid"  aria-hidden="true" />
+        <div className="film-grain" aria-hidden="true" />
 
         <a href="#main-content" className="skip-link">Skip to content</a>
 
