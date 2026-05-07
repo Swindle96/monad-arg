@@ -241,15 +241,15 @@ export default function PlayPage() {
   const rawCount          = puzzleResults?.[1]?.result;
   const rawPuzzleId       = puzzleResults?.[2]?.result;
 
-  const puzzle            = rawPuzzle as PuzzleData | undefined;
-  const puzzleDescription = puzzle?.description?.trim() || puzzleMeta?.description || null;
-  const currentPuzzleId   = rawPuzzleId as bigint | undefined;
-  const puzzleCount       = rawCount    as bigint | undefined;
-  const puzzleLabel       = currentPuzzleId !== undefined
+  const puzzle          = rawPuzzle as PuzzleData | undefined;
+  const currentPuzzleId = rawPuzzleId as bigint | undefined;
+  const puzzleCount     = rawCount    as bigint | undefined;
+  const puzzleLabel     = currentPuzzleId !== undefined
     ? `#${String(Number(currentPuzzleId) + 1).padStart(3, "0")}`
     : "#---";
 
-  const puzzleMeta    = currentPuzzleId !== undefined ? getPuzzleMeta(Number(currentPuzzleId)) : undefined;
+  const puzzleMeta        = currentPuzzleId !== undefined ? getPuzzleMeta(Number(currentPuzzleId)) : undefined;
+  const puzzleDescription = puzzle?.description?.trim() || puzzleMeta?.description || null;
   const categoryColor = puzzleMeta ? CATEGORY_COLORS[puzzleMeta.category] : "var(--mono)";
   const answerFormat  = puzzleMeta ? extractAnswerFormat(puzzleMeta.description) : null;
 
