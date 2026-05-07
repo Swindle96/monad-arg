@@ -15,8 +15,8 @@ import { ConnectKitButton } from "connectkit";
 import { puzzleChainAbi, CONTRACT_ADDRESSES } from "@/lib/contracts";
 import { getPuzzleMeta, CATEGORY_COLORS } from "@/lib/puzzleData";
 
-const CONTRACT_ADDRESS     = CONTRACT_ADDRESSES.puzzleChain;
-const EXPLORER             = "https://testnet.monadexplorer.com/tx";
+const CONTRACT_ADDRESS       = CONTRACT_ADDRESSES.puzzleChain;
+const EXPLORER               = "https://testnet.monadexplorer.com/tx";
 const FALLBACK_COMMIT_BLOCKS = 10n;
 
 type PuzzleData = {
@@ -69,6 +69,17 @@ function loadCommit(): CommitData | null {
 }
 function clearCommit() { localStorage.removeItem(STORAGE_KEY); }
 
+function downloadBackup(d: CommitData) {
+  const json = JSON.stringify({ ...d, commitBlock: d.commitBlock.toString() }, null, 2);
+  const blob = new Blob([json], { type: "application/json" });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement("a");
+  a.href     = url;
+  a.download = `chain-detective-commit-${d.puzzleId}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 function friendlyError(msg: string, commitBlocks = FALLBACK_COMMIT_BLOCKS): string {
   if (msg.includes("WrongAnswer"))           return "Incorrect answer. Try again.";
   if (msg.includes("AlreadySolved"))         return "This puzzle has already been solved.";
@@ -88,7 +99,7 @@ function Spinner() {
   return (
     <span
       className="inline-block w-4 h-4 rounded-full border-2 animate-spin shrink-0"
-      style={{ borderColor: "rgba(110,84,255,0.3)", borderTopColor: "#6E54FF" }}
+      style={{ borderColor: "var(--mono-wire)", borderTopColor: "var(--mono)" }}
       aria-label="Loading"
     />
   );
@@ -97,12 +108,11 @@ function Spinner() {
 function CheckIcon() {
   return (
     <svg width="13" height="13" viewBox="0 0 12 12" fill="none" aria-hidden="true" className="inline-block shrink-0">
-      <path d="M2 6L5 9L10 3" stroke="#D4A574" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M2 6L5 9L10 3" stroke="var(--amber)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
 
-// Hoisted outside component — array never changes, no reason to recreate on each render
 const CONFETTI_PIECES = Array.from({ length: 50 }, (_, i) => ({
   left:     `${(i * 37 + 11) % 100}%`,
   delay:    `${((i * 7) % 15) / 10}s`,
@@ -139,15 +149,17 @@ function BlockProgress({ blocksLeft, totalBlocks }: { blocksLeft: bigint; totalB
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between">
-        <span style={{
-          fontFamily: "var(--font-roboto-mono)",
-          fontSize: "0.72rem",
-          letterSpacing: "0.14em",
-          color: ready ? "var(--amber)" : "#FFAE45",
-        }}>
+        <span
+          style={{
+            fontFamily: "var(--font-roboto-mono)",
+            fontSize: "0.72rem",
+            letterSpacing: "0.14em",
+            color: ready ? "var(--amber)" : "var(--orange)",
+          }}
+        >
           {ready ? "SEAL READY TO BREAK" : `HOLD — ${blocksLeft} BLOCK${blocksLeft !== 1n ? "S" : ""} REMAINING`}
         </span>
-        <span className="tabular-nums" style={{ fontFamily: "var(--font-roboto-mono)", fontSize: "0.68rem", color: "var(--text-dim)" }}>
+        <span className="tabular-nums" style={{ fontFamily: "var(--font-roboto-mono)", fontSize: "0.68rem", color: "var(--ink-low)" }}>
           {pct}%
         </span>
       </div>
@@ -158,7 +170,7 @@ function BlockProgress({ blocksLeft, totalBlocks }: { blocksLeft: bigint; totalB
             width: `${pct}%`,
             background: ready
               ? "linear-gradient(90deg, var(--amber), var(--cyan))"
-              : "linear-gradient(90deg, var(--purple), #FFAE45)",
+              : "linear-gradient(90deg, var(--mono), var(--orange))",
             boxShadow: ready
               ? "0 0 10px rgba(212,165,116,0.6)"
               : "0 0 10px rgba(110,84,255,0.5)",
@@ -175,16 +187,38 @@ export default function PlayPage() {
   const [pendingCommit, setPending]    = useState<CommitData | null>(null);
   const [encodingError, setEncError]   = useState(false);
   const pendingCommitRef               = useRef<CommitData | null>(null);
+  const importRef                      = useRef<HTMLInputElement>(null);
   const { address: userAddress, isConnected } = useAccount();
 
-  // Keep ref in sync so the timeout callback always sees the latest pendingCommit
-  useEffect(() => { pendingCommitRef.current = pendingCommit; }, [pendingCommit]);
+  function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const parsed = JSON.parse(ev.target?.result as string);
+        if (!parsed.puzzleId || !parsed.answerHex || !parsed.nonce || parsed.commitBlock == null) {
+          return;
+        }
+        const data: CommitData = {
+          puzzleId:    String(parsed.puzzleId),
+          answerHex:   parsed.answerHex as `0x${string}`,
+          nonce:       parsed.nonce as `0x${string}`,
+          commitBlock: BigInt(parsed.commitBlock),
+        };
+        saveCommit(data);
+        setCommit(data);
+      } catch { /* invalid file */ }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  }
 
+  useEffect(() => { pendingCommitRef.current = pendingCommit; }, [pendingCommit]);
   useEffect(() => { setCommit(loadCommit()); }, []);
 
   const { data: currentBlock } = useBlockNumber({ watch: true });
 
-  // Read the block delay from the contract so it's always in sync with on-chain truth
   const { data: commitBlocksData } = useReadContract({
     address: CONTRACT_ADDRESS,
     abi: puzzleChainAbi,
@@ -216,7 +250,7 @@ export default function PlayPage() {
     : "#---";
 
   const puzzleMeta    = currentPuzzleId !== undefined ? getPuzzleMeta(Number(currentPuzzleId)) : undefined;
-  const categoryColor = puzzleMeta ? CATEGORY_COLORS[puzzleMeta.category] : "var(--purple)";
+  const categoryColor = puzzleMeta ? CATEGORY_COLORS[puzzleMeta.category] : "var(--mono)";
   const answerFormat  = puzzleMeta ? extractAnswerFormat(puzzleMeta.description) : null;
 
   const { writeContract: writeCommit, data: commitTxHash, isPending: isCommitPending, error: commitWriteError, reset: resetCommit } = useWriteContract();
@@ -256,17 +290,12 @@ export default function PlayPage() {
       const pending = pendingCommitRef.current;
       resetCommit();
       if (!pending) return;
-      // Tx may have landed on-chain even though the wallet timed out.
-      // Refetch the on-chain commit record; if found, save it so the user can still reveal.
       try {
         const result = await refetchOnChainCommit();
         const onChain = result.data as CommitRecord | undefined;
         const hasOnChain = onChain?.commitment !== "0x0000000000000000000000000000000000000000000000000000000000000000";
-        if (hasOnChain) {
-          saveCommit(pending);
-          setCommit(pending);
-        }
-      } catch { /* refetch failed — just clear pending */ }
+        if (hasOnChain) { saveCommit(pending); setCommit(pending); }
+      } catch { /* refetch failed */ }
       setPending(null);
     }, WALLET_TIMEOUT_MS);
     return () => clearTimeout(t);
@@ -298,7 +327,7 @@ export default function PlayPage() {
   function handleCommit(e: React.FormEvent) {
     e.preventDefault();
     if (!userAddress || !isConnected) return;
-    if (currentBlock === undefined) return; // block number required for accurate reveal timing
+    if (currentBlock === undefined) return;
     const trimmed = answer.trim();
     if (!trimmed || !/^[A-Za-z0-9_.+/=-]{1,32}$/.test(trimmed)) { setEncError(true); return; }
     const answerHex = encodeAnswer(trimmed);
@@ -321,14 +350,15 @@ export default function PlayPage() {
   }, [isRevealSuccess]);
 
   const evidenceRows = useMemo(() => [
-    { label: "CASE NO.",       value: puzzleLabel },
-    { label: "TOTAL CASES",    value: puzzleCount !== undefined ? String(puzzleCount) : "—" },
-    { label: "CONTRACT",       value: `${CONTRACT_ADDRESS.slice(0, 8)}…${CONTRACT_ADDRESS.slice(-6)}` },
+    { label: "CASE NO.",    value: puzzleLabel },
+    { label: "TOTAL CASES", value: puzzleCount !== undefined ? String(puzzleCount) : "—" },
+    { label: "CONTRACT",    value: `${CONTRACT_ADDRESS.slice(0, 8)}…${CONTRACT_ADDRESS.slice(-6)}` },
   ], [puzzleLabel, puzzleCount]);
+
   const activeError = revealWriteError ?? commitWriteError;
 
   return (
-    <div style={{ minHeight: "100vh", color: "var(--text)" }}>
+    <div style={{ minHeight: "100vh" }}>
       {isRevealSuccess && <Confetti />}
       {isRevealSuccess && (
         <span
@@ -343,45 +373,41 @@ export default function PlayPage() {
       {/* ── CASE FILE HEADER ─────────────────────────────────────── */}
       <div
         style={{
-          background: "rgba(7,4,15,0.96)",
-          borderBottom: "1px solid rgba(212,165,116,0.16)",
-          backdropFilter: "blur(16px)",
+          background: "rgba(3,1,8,0.96)",
+          borderBottom: "1px solid var(--wire-amber)",
+          backdropFilter: "blur(18px)",
+          position: "sticky",
+          top: "56px",
+          zIndex: 30,
         }}
       >
-        {/* Top amber accent line */}
-        <div style={{ height: "1px", background: "linear-gradient(90deg, transparent, var(--amber) 30%, var(--purple) 70%, transparent)" }} aria-hidden="true" />
-
-        <div className="mx-auto max-w-[1280px] px-4 sm:px-6 flex items-center justify-between" style={{ height: "52px" }}>
+        <div
+          style={{
+            height: "1px",
+            background: "linear-gradient(90deg, transparent, var(--amber) 30%, var(--mono) 70%, transparent)",
+          }}
+          aria-hidden="true"
+        />
+        <div
+          className="mx-auto max-w-[1280px] px-4 sm:px-6 flex items-center justify-between"
+          style={{ height: "52px" }}
+        >
           <div className="flex items-center gap-4">
             <Link
               href="/"
               className="inline-flex items-center min-h-[44px] gap-2 transition-colors"
-              style={{ fontFamily: "var(--font-roboto-mono)", fontSize: "0.72rem", letterSpacing: "0.18em", color: "var(--text-dim)" }}
+              style={{ fontFamily: "var(--font-roboto-mono)", fontSize: "0.72rem", letterSpacing: "0.18em", color: "var(--ink-low)" }}
               onMouseEnter={e => (e.currentTarget.style.color = "var(--amber)")}
-              onMouseLeave={e => (e.currentTarget.style.color = "var(--text-dim)")}
+              onMouseLeave={e => (e.currentTarget.style.color = "var(--ink-low)")}
             >
               ← BACK
             </Link>
-            <span style={{ color: "rgba(212,165,116,0.25)", userSelect: "none" }}>|</span>
-            <span
-              style={{
-                fontFamily: "var(--font-special-elite), monospace",
-                fontSize: "0.72rem",
-                letterSpacing: "0.24em",
-                color: "var(--amber)",
-                textTransform: "uppercase",
-              }}
-            >
-              Case File {puzzleLabel}
-            </span>
+            <span style={{ color: "var(--wire-amber)", userSelect: "none" }}>|</span>
+            <span className="label-case">Case File {puzzleLabel}</span>
           </div>
           <div className="hidden sm:flex items-center gap-2">
-            <span
-              className="w-1.5 h-1.5 rounded-full amber-pulse"
-              style={{ background: "var(--amber)", boxShadow: "0 0 8px var(--amber)" }}
-              aria-hidden="true"
-            />
-            <span style={{ fontFamily: "var(--font-roboto-mono)", fontSize: "0.68rem", letterSpacing: "0.2em", color: "var(--amber)" }}>
+            <span className="dot dot-amber" style={{ width: "6px", height: "6px" }} aria-hidden="true" />
+            <span className="label-mono" style={{ color: "var(--amber)", letterSpacing: "0.20em" }}>
               ACTIVE INVESTIGATION
             </span>
           </div>
@@ -392,60 +418,32 @@ export default function PlayPage() {
       <div className="mx-auto max-w-[1280px] px-4 sm:px-6 py-8" style={{ display: "grid", gap: "24px" }}>
         <div className="lg:grid lg:grid-cols-[1fr_1.25fr] lg:gap-6">
 
-          {/* ── LEFT ASIDE — DOSSIER ─────────────────────────────── */}
-          <aside className="mb-6 lg:mb-0 lg:sticky lg:top-24 lg:self-start flex flex-col gap-4">
+          {/* ── LEFT ASIDE — EVIDENCE DOSSIER ────────────────────── */}
+          <aside className="mb-6 lg:mb-0 lg:sticky lg:top-28 lg:self-start flex flex-col gap-4">
 
-            {/* Evidence dossier */}
-            <div className="dossier rift-glow-border" style={{ borderRadius: "2px" }}>
+            {/* Dossier panel */}
+            <div className="p-evidence" style={{ position: "relative" }}>
+
               {/* Panel header */}
               <div
                 className="flex items-center justify-between px-6 py-5"
-                style={{ borderBottom: "1px solid rgba(212,165,116,0.14)" }}
+                style={{ borderBottom: "1px solid var(--wire-amber)" }}
               >
-                <p
-                  style={{
-                    fontFamily: "var(--font-special-elite), monospace",
-                    fontSize: "0.72rem",
-                    letterSpacing: "0.28em",
-                    color: "var(--amber)",
-                    textTransform: "uppercase",
-                  }}
-                >
-                  Evidence Dossier
-                </p>
+                <p className="label-case">Evidence Dossier</p>
                 <span
-                  className="amber-pulse flex items-center gap-2"
-                  style={{
-                    fontFamily: "var(--font-roboto-mono)",
-                    fontSize: "0.64rem",
-                    letterSpacing: "0.18em",
-                    color: "var(--amber)",
-                    border: "1px solid rgba(212,165,116,0.35)",
-                    padding: "4px 10px",
-                    background: "rgba(212,165,116,0.05)",
-                  }}
+                  className="active-tag"
+                  style={{ border: "1px solid rgba(212,165,116,0.35)", color: "var(--amber)", background: "rgba(212,165,116,0.05)" }}
                 >
-                  <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: "var(--amber)", display: "inline-block" }} aria-hidden="true" />
+                  <span className="dot dot-amber" style={{ width: "5px", height: "5px" }} aria-hidden="true" />
                   ACTIVE
                 </span>
               </div>
 
-              {/* Puzzle ID — case file style */}
+              {/* Case identifier */}
               <div className="px-6 pt-6 pb-4">
-                <p
-                  style={{
-                    fontFamily: "var(--font-special-elite), monospace",
-                    fontSize: "0.6rem",
-                    letterSpacing: "0.3em",
-                    color: "var(--text-dim)",
-                    marginBottom: "8px",
-                    textTransform: "uppercase",
-                  }}
-                >
-                  Case Identifier
-                </p>
+                <p className="label-mono" style={{ marginBottom: "10px" }}>Case Identifier</p>
                 <h1
-                  className="rift-title-3d select-none"
+                  className="display-3d select-none"
                   style={{ fontSize: "clamp(2.8rem, 7vw, 4.2rem)", lineHeight: 0.9, marginBottom: "20px" }}
                 >
                   Case
@@ -468,21 +466,9 @@ export default function PlayPage() {
                   </div>
                 )}
 
-                <div className="redline mb-5 w-16" />
+                <div className="wire-amber mb-5" style={{ width: "56px" }} />
 
-                {/* Mission briefing */}
-                <p
-                  style={{
-                    fontFamily: "var(--font-special-elite), monospace",
-                    fontSize: "0.65rem",
-                    letterSpacing: "0.24em",
-                    color: "var(--text-dim)",
-                    marginBottom: "10px",
-                    textTransform: "uppercase",
-                  }}
-                >
-                  Mission Briefing
-                </p>
+                <p className="label-mono" style={{ marginBottom: "10px" }}>Mission Briefing</p>
 
                 {puzzleLoading ? (
                   <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
@@ -491,9 +477,9 @@ export default function PlayPage() {
                     ))}
                   </div>
                 ) : (
-                  <p style={{ fontFamily: "var(--font-inter)", fontSize: "0.9rem", lineHeight: 1.75, color: "var(--text-muted)" }}>
+                  <p style={{ fontFamily: "var(--font-inter)", fontSize: "0.9rem", lineHeight: 1.75, color: "var(--ink-mid)" }}>
                     {puzzleDescription || (
-                      <span style={{ color: "var(--text-dim)" }}>
+                      <span style={{ color: "var(--ink-low)" }}>
                         {puzzleError && puzzleCount === undefined
                           ? "Could not reach contract — check RPC connection."
                           : "No puzzle has been added yet. Check back soon."}
@@ -504,14 +490,14 @@ export default function PlayPage() {
               </div>
 
               {/* Evidence rows */}
-              <div style={{ borderTop: "1px solid rgba(212,165,116,0.10)" }}>
+              <div style={{ borderTop: "1px solid var(--wire-amber)" }}>
                 {evidenceRows.map(({ label, value }, i) => (
                   <div
                     key={label}
                     className="flex items-center justify-between px-6 py-3 hover:bg-white/[0.02] transition-colors"
                     style={{ borderBottom: i < evidenceRows.length - 1 ? "1px solid rgba(212,165,116,0.06)" : "none" }}
                   >
-                    <span style={{ fontFamily: "var(--font-roboto-mono)", fontSize: "0.68rem", letterSpacing: "0.2em", color: "var(--text-dim)" }}>{label}</span>
+                    <span className="label-mono">{label}</span>
                     <span style={{ fontFamily: "var(--font-roboto-mono)", fontSize: "0.78rem", color: "var(--amber)" }}>{value}</span>
                   </div>
                 ))}
@@ -519,26 +505,22 @@ export default function PlayPage() {
             </div>
 
             {/* Protocol details */}
-            <details className="rift-panel" style={{ borderRadius: "2px" }}>
+            <details className="p-panel">
               <summary
+                className="label-case"
                 style={{
-                  fontFamily: "var(--font-special-elite), monospace",
-                  fontSize: "0.7rem",
-                  letterSpacing: "0.2em",
-                  color: "var(--amber)",
                   cursor: "pointer",
                   minHeight: "44px",
                   display: "flex",
                   alignItems: "center",
                   padding: "0 20px",
-                  textTransform: "uppercase",
                 }}
               >
                 Field Protocol
               </summary>
-              <div style={{ padding: "0 20px 16px", display: "flex", flexDirection: "column", gap: "10px", fontFamily: "var(--font-inter)", fontSize: "0.875rem", color: "var(--text-muted)", lineHeight: 1.7 }}>
-                <p><span style={{ color: "var(--text)" }}>Phase 1 — Seal:</span> Submit a hidden hash of your answer. No one in the mempool can read the answer itself.</p>
-                <p><span style={{ color: "var(--text)" }}>Phase 2 — Break</span> after {COMMIT_BLOCKS.toString()} blocks: reveal your answer on-chain so the contract can verify it against your commitment.</p>
+              <div style={{ padding: "0 20px 16px", display: "flex", flexDirection: "column", gap: "10px", fontFamily: "var(--font-inter)", fontSize: "0.875rem", color: "var(--ink-mid)", lineHeight: 1.7 }}>
+                <p><span style={{ color: "var(--ink)" }}>Phase 1 — Seal:</span> Submit a hidden hash of your answer. No one in the mempool can read the answer itself.</p>
+                <p><span style={{ color: "var(--ink)" }}>Phase 2 — Break</span> after {COMMIT_BLOCKS.toString()} blocks: reveal your answer on-chain so the contract can verify it against your commitment.</p>
               </div>
             </details>
           </aside>
@@ -548,16 +530,10 @@ export default function PlayPage() {
 
             {/* Success banner */}
             {isRevealSuccess && (
-              <div
-                className="dossier"
-                style={{ borderRadius: "2px", padding: "20px" }}
-              >
-                {/* Top accent line */}
+              <div className="p-evidence" style={{ padding: "20px", position: "relative" }}>
                 <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "2px", background: "linear-gradient(90deg, var(--amber), var(--cyan))" }} aria-hidden="true" />
-                <p style={{ fontFamily: "var(--font-special-elite), monospace", fontSize: "0.78rem", letterSpacing: "0.24em", color: "var(--amber)", fontWeight: 400, marginBottom: "6px", textTransform: "uppercase" }}>
-                  Case Solved — Evidence Verified
-                </p>
-                <p style={{ fontFamily: "var(--font-inter)", fontSize: "0.875rem", color: "var(--text-muted)" }}>
+                <p className="label-case" style={{ marginBottom: "6px" }}>Case Solved — Evidence Verified</p>
+                <p style={{ fontFamily: "var(--font-inter)", fontSize: "0.875rem", color: "var(--ink-mid)" }}>
                   Record written to leaderboard.{" "}
                   {revealTxHash && (
                     <a href={`${EXPLORER}/${revealTxHash}`} target="_blank" rel="noopener noreferrer" style={{ color: "var(--amber)" }}>
@@ -569,37 +545,25 @@ export default function PlayPage() {
             )}
 
             {/* Interrogation terminal */}
-            <div className="rift-panel" style={{ borderRadius: "2px", overflow: "hidden" }}>
+            <div className="p-panel" style={{ overflow: "hidden" }}>
 
-              {/* Terminal title bar — noir style */}
+              {/* Terminal title bar */}
               <div
                 className="flex items-center justify-between px-5 py-3"
                 style={{
                   background: "rgba(212,165,116,0.04)",
-                  borderBottom: "1px solid rgba(212,165,116,0.14)",
+                  borderBottom: "1px solid var(--wire-amber)",
                 }}
               >
                 <div className="flex items-center gap-3">
-                  {/* Small badge icon in title bar */}
                   <svg width="12" height="14" viewBox="0 0 12 14" fill="none" aria-hidden="true">
                     <path d="M6 0.5L11 2.8V7C11 9.8 8.8 12.2 6 13C3.2 12.2 1 9.8 1 7V2.8L6 0.5Z" stroke="rgba(212,165,116,0.5)" strokeWidth="1" fill="rgba(212,165,116,0.06)" />
                   </svg>
-                  <span
-                    style={{
-                      fontFamily: "var(--font-special-elite), monospace",
-                      fontSize: "0.7rem",
-                      letterSpacing: "0.22em",
-                      color: "var(--amber)",
-                      textTransform: "uppercase",
-                    }}
-                  >
-                    Interrogation Terminal
-                  </span>
+                  <span className="label-case">Interrogation Terminal</span>
                 </div>
-                {/* Window controls */}
                 <div className="flex gap-1.5" aria-hidden="true">
-                  {["#FF8EE4", "#FFAE45", "#D4A574"].map((c, i) => (
-                    <span key={i} className="w-2.5 h-2.5 rounded-full" style={{ background: c, opacity: 0.5 }} />
+                  {["var(--pink)", "var(--orange)", "var(--amber)"].map((c, i) => (
+                    <span key={i} className="w-2.5 h-2.5 rounded-full" style={{ background: c, opacity: 0.45 }} />
                   ))}
                 </div>
               </div>
@@ -607,19 +571,8 @@ export default function PlayPage() {
               {!isConnected ? (
                 <div style={{ padding: "48px 24px", display: "flex", flexDirection: "column", alignItems: "center", gap: "20px" }}>
                   <div style={{ textAlign: "center" }}>
-                    <p
-                      style={{
-                        fontFamily: "var(--font-special-elite), monospace",
-                        fontSize: "0.75rem",
-                        letterSpacing: "0.24em",
-                        color: "var(--text-dim)",
-                        marginBottom: "8px",
-                        textTransform: "uppercase",
-                      }}
-                    >
-                      Agent Identification Required
-                    </p>
-                    <p style={{ fontFamily: "var(--font-inter)", fontSize: "0.875rem", color: "var(--text-muted)" }}>
+                    <p className="label-case" style={{ marginBottom: "8px" }}>Agent Identification Required</p>
+                    <p style={{ fontFamily: "var(--font-inter)", fontSize: "0.875rem", color: "var(--ink-mid)" }}>
                       Connect your wallet to submit answers on-chain.
                     </p>
                   </div>
@@ -630,47 +583,74 @@ export default function PlayPage() {
 
                   {/* Phase 1 — Seal */}
                   <div>
-                    <p style={{
-                      fontFamily: "var(--font-roboto-mono)",
-                      fontSize: "0.72rem",
-                      letterSpacing: "0.18em",
-                      color: "var(--amber)",
-                      marginBottom: "14px",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "6px",
-                    }}>
+                    <p
+                      style={{
+                        fontFamily: "var(--font-roboto-mono)",
+                        fontSize: "0.72rem",
+                        letterSpacing: "0.18em",
+                        color: "var(--amber)",
+                        marginBottom: "14px",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                      }}
+                    >
                       PHASE 01 — SEAL EVIDENCE {commit ? <CheckIcon /> : null}
                     </p>
 
                     {pendingCommit && (isCommitPending || isCommitConfirming) ? (
                       <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "12px 16px", border: "1px solid rgba(255,174,69,0.3)", background: "rgba(255,174,69,0.04)" }}>
                         <Spinner />
-                        <span style={{ fontFamily: "var(--font-roboto-mono)", fontSize: "0.72rem", color: "#FFAE45" }}>
+                        <span style={{ fontFamily: "var(--font-roboto-mono)", fontSize: "0.72rem", color: "var(--orange)" }}>
                           {isCommitPending ? "CONFIRM IN WALLET…" : "SEALING EVIDENCE…"}
                         </span>
                       </div>
                     ) : commit ? (
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", padding: "12px 16px", border: "1px solid rgba(212,165,116,0.22)", background: "rgba(212,165,116,0.04)" }}>
-                        <span style={{ fontFamily: "var(--font-roboto-mono)", fontSize: "0.72rem", color: "var(--text-muted)" }}>
-                          Evidence sealed at block <span style={{ color: "var(--amber)" }}>{(onChainCommitBlock ?? commit.commitBlock).toString()}</span>. Proceed to Phase 2.
-                        </span>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "8px", padding: "12px 16px", border: "1px solid var(--wire-amber)", background: "var(--amber-fog)" }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px" }}>
+                          <span style={{ fontFamily: "var(--font-roboto-mono)", fontSize: "0.72rem", color: "var(--ink-mid)" }}>
+                            Sealed at block <span style={{ color: "var(--amber)" }}>{(onChainCommitBlock ?? commit.commitBlock).toString()}</span>. Proceed to Phase 2.
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => { clearCommit(); setCommit(null); resetCommit(); resetReveal(); }}
+                            className="inline-flex items-center min-h-[44px] px-2 hover:opacity-80 transition-opacity"
+                            style={{ color: "var(--pink)", cursor: "pointer", background: "none", border: "none", fontFamily: "var(--font-roboto-mono)", fontSize: "0.72rem", flexShrink: 0 }}
+                          >
+                            [reset]
+                          </button>
+                        </div>
                         <button
                           type="button"
-                          onClick={() => { clearCommit(); setCommit(null); resetCommit(); resetReveal(); }}
-                          className="inline-flex items-center min-h-[44px] px-2 hover:opacity-80 transition-opacity"
-                          style={{ color: "var(--pink)", cursor: "pointer", background: "none", border: "none", fontFamily: "var(--font-roboto-mono)", fontSize: "0.72rem", flexShrink: 0 }}
+                          onClick={() => downloadBackup(commit)}
+                          style={{
+                            alignSelf: "flex-start",
+                            background: "none", border: "1px solid rgba(212,165,116,0.3)",
+                            padding: "4px 10px", cursor: "pointer",
+                            fontFamily: "var(--font-roboto-mono)", fontSize: "0.65rem",
+                            letterSpacing: "0.14em", color: "var(--amber)", opacity: 0.8,
+                          }}
+                          onMouseEnter={e => (e.currentTarget.style.opacity = "1")}
+                          onMouseLeave={e => (e.currentTarget.style.opacity = "0.8")}
                         >
-                          [reset]
+                          ↓ SAVE BACKUP
                         </button>
                       </div>
                     ) : (
+                      <input
+                        ref={importRef}
+                        type="file"
+                        accept="application/json,.json"
+                        onChange={handleImportFile}
+                        style={{ display: "none" }}
+                        aria-hidden="true"
+                      />
                       <form onSubmit={handleCommit} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                         <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px", flexWrap: "wrap" }}>
                             <label
                               htmlFor="answer-input"
-                              style={{ fontFamily: "var(--font-roboto-mono)", fontSize: "0.72rem", letterSpacing: "0.22em", color: "var(--text-dim)", display: "block" }}
+                              className="label-mono"
                             >
                               YOUR ANSWER
                             </label>
@@ -680,7 +660,7 @@ export default function PlayPage() {
                               </span>
                             )}
                           </div>
-                          <div style={{ display: "flex", alignItems: "center", border: "1px solid rgba(212,165,116,0.25)", background: "rgba(7,4,15,0.85)" }}>
+                          <div style={{ display: "flex", alignItems: "center", border: "1px solid var(--wire-amber)", background: "rgba(3,1,8,0.85)" }}>
                             <span style={{ padding: "0 12px", color: "var(--amber)", fontFamily: "var(--font-roboto-mono)", fontSize: "0.85rem", userSelect: "none" }} aria-hidden="true">›</span>
                             <input
                               id="answer-input"
@@ -703,7 +683,7 @@ export default function PlayPage() {
                               aria-describedby={encodingError ? "answer-error" : undefined}
                               style={{
                                 flex: 1, background: "transparent", padding: "13px 12px 13px 0",
-                                fontSize: "0.9rem", color: "var(--text)", outline: "none",
+                                fontSize: "0.9rem", color: "var(--ink)", outline: "none",
                                 fontFamily: "var(--font-inter)", caretColor: "var(--amber)",
                                 opacity: (isCommitPending || isCommitConfirming) ? 0.5 : 1,
                               }}
@@ -712,7 +692,7 @@ export default function PlayPage() {
                             />
                           </div>
                           {encodingError && (
-                            <p id="answer-error" role="alert" style={{ fontFamily: "var(--font-roboto-mono)", fontSize: "0.72rem", color: "var(--red-alert)" }}>
+                            <p id="answer-error" role="alert" style={{ fontFamily: "var(--font-roboto-mono)", fontSize: "0.72rem", color: "var(--crimson)" }}>
                               Invalid format — use only letters, digits, or allowed symbols (max 32 chars).
                             </p>
                           )}
@@ -720,7 +700,7 @@ export default function PlayPage() {
                         <button
                           type="submit"
                           disabled={isCommitPending || isCommitConfirming || !answer.trim() || puzzleLoading}
-                          className="rift-btn-ghost"
+                          className="btn-ghost"
                           style={{ justifyContent: "center" }}
                         >
                           {isCommitPending || isCommitConfirming ? (
@@ -728,40 +708,57 @@ export default function PlayPage() {
                           ) : "SEAL EVIDENCE"}
                         </button>
                       </form>
+                      <button
+                        type="button"
+                        onClick={() => importRef.current?.click()}
+                        style={{
+                          alignSelf: "flex-start",
+                          background: "none", border: "none",
+                          padding: 0, cursor: "pointer",
+                          fontFamily: "var(--font-roboto-mono)", fontSize: "0.65rem",
+                          letterSpacing: "0.14em", color: "var(--ink-low)",
+                        }}
+                        onMouseEnter={e => (e.currentTarget.style.color = "var(--amber)")}
+                        onMouseLeave={e => (e.currentTarget.style.color = "var(--ink-low)")}
+                      >
+                        ↑ restore from backup
+                      </button>
                     )}
                   </div>
 
-                  <div className="rift-line" />
+                  <div className="wire-h" />
 
                   {/* Phase 2 — Break the seal */}
                   <div>
-                    <p style={{
-                      fontFamily: "var(--font-roboto-mono)",
-                      fontSize: "0.72rem",
-                      letterSpacing: "0.18em",
-                      color: "var(--cyan)",
-                      marginBottom: "14px",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "6px",
-                    }}>
+                    <p
+                      style={{
+                        fontFamily: "var(--font-roboto-mono)",
+                        fontSize: "0.72rem",
+                        letterSpacing: "0.18em",
+                        color: "var(--cyan)",
+                        marginBottom: "14px",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                      }}
+                    >
                       PHASE 02 — BREAK THE SEAL {isRevealSuccess ? <CheckIcon /> : null}
                     </p>
 
                     {!commit ? (
-                      <p style={{ fontFamily: "var(--font-roboto-mono)", fontSize: "0.72rem", color: "var(--text-dim)" }}>Complete Phase 1 first.</p>
+                      <p className="label-mono">Complete Phase 1 first.</p>
                     ) : isRevealSuccess ? (
                       <p style={{ fontFamily: "var(--font-roboto-mono)", fontSize: "0.72rem", color: "var(--amber)" }}>Answer revealed and verified on-chain!</p>
                     ) : (
                       <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                        <div style={{ padding: "14px 16px", border: "1px solid rgba(212,165,116,0.16)", background: "rgba(212,165,116,0.03)" }}>
+                        <div style={{ padding: "14px 16px", border: "1px solid var(--wire)", background: "var(--mono-fog)" }}>
                           <BlockProgress blocksLeft={blocksUntilReveal < 0n ? 0n : blocksUntilReveal} totalBlocks={COMMIT_BLOCKS} />
                           {currentBlock !== undefined && (
                             <p
-                              className="tabular-nums"
+                              className="tabular-nums label-mono"
                               aria-live="polite"
                               aria-atomic="true"
-                              style={{ marginTop: "8px", fontFamily: "var(--font-roboto-mono)", fontSize: "0.68rem", color: "var(--text-dim)" }}
+                              style={{ marginTop: "8px" }}
                             >
                               Block #{currentBlock.toString()}
                             </p>
@@ -771,7 +768,7 @@ export default function PlayPage() {
                           type="button"
                           onClick={doReveal}
                           disabled={!canReveal || isRevealPending || isRevealConfirming}
-                          className="rift-btn"
+                          className="btn"
                           style={{ justifyContent: "center" }}
                         >
                           {isRevealPending || isRevealConfirming ? (
@@ -787,7 +784,7 @@ export default function PlayPage() {
 
             {/* Agent tip */}
             {puzzleMeta && (
-              <details className="rift-panel" style={{ borderRadius: "2px" }}>
+              <details className="p-panel">
                 <summary
                   style={{
                     fontFamily: "var(--font-roboto-mono)",
@@ -802,7 +799,6 @@ export default function PlayPage() {
                     color: categoryColor,
                   }}
                 >
-                  {/* Lightbulb SVG instead of emoji */}
                   <svg width="12" height="14" viewBox="0 0 12 14" fill="none" aria-hidden="true">
                     <path d="M6 1C3.79 1 2 2.79 2 5C2 6.5 2.8 7.8 4 8.6V10H8V8.6C9.2 7.8 10 6.5 10 5C10 2.79 8.21 1 6 1Z" stroke="currentColor" strokeWidth="1" fill="none"/>
                     <rect x="4" y="10.5" width="4" height="1" rx="0.5" fill="currentColor"/>
@@ -812,11 +808,9 @@ export default function PlayPage() {
                 </summary>
                 <div style={{ padding: "0 20px 20px", display: "flex", flexDirection: "column", gap: "16px" }}>
                   <div>
-                    <p style={{ fontFamily: "var(--font-roboto-mono)", fontSize: "0.62rem", letterSpacing: "0.2em", color: "var(--text-dim)", marginBottom: "8px" }}>
-                      SUGGESTED PROMPT
-                    </p>
-                    <div style={{ background: "rgba(0,0,0,0.45)", border: "1px solid rgba(212,165,116,0.15)", padding: "14px 16px" }}>
-                      <p style={{ fontFamily: "var(--font-roboto-mono)", fontSize: "0.78rem", color: "var(--text-muted)", lineHeight: 1.7, whiteSpace: "pre-wrap" }}>
+                    <p className="label-mono" style={{ marginBottom: "8px" }}>SUGGESTED PROMPT</p>
+                    <div className="p-terminal" style={{ padding: "14px 16px" }}>
+                      <p style={{ fontFamily: "var(--font-roboto-mono)", fontSize: "0.78rem", color: "var(--ink-mid)", lineHeight: 1.7, whiteSpace: "pre-wrap" }}>
                         {`"${puzzleMeta.description.replace(/Answer:.+$/, "").trim()} Show only the final answer, no explanation."`}
                       </p>
                     </div>
@@ -824,11 +818,11 @@ export default function PlayPage() {
                   {answerFormat && (
                     <div style={{ display: "flex", alignItems: "flex-start", gap: "10px", padding: "12px 14px", border: `1px solid ${categoryColor}33`, background: `${categoryColor}08` }}>
                       <span style={{ color: categoryColor, fontFamily: "var(--font-roboto-mono)", fontSize: "0.72rem", flexShrink: 0 }}>FORMAT</span>
-                      <span style={{ fontFamily: "var(--font-roboto-mono)", fontSize: "0.72rem", color: "var(--text-muted)", lineHeight: 1.6 }}>{answerFormat}</span>
+                      <span style={{ fontFamily: "var(--font-roboto-mono)", fontSize: "0.72rem", color: "var(--ink-mid)", lineHeight: 1.6 }}>{answerFormat}</span>
                     </div>
                   )}
-                  <p style={{ fontFamily: "var(--font-inter)", fontSize: "0.8rem", color: "var(--text-dim)", lineHeight: 1.6 }}>
-                    Works with <span style={{ color: "var(--text)" }}>ChatGPT</span>, <span style={{ color: "var(--text)" }}>Claude</span>, <span style={{ color: "var(--text)" }}>Gemini</span>, <span style={{ color: "var(--text)" }}>Grok</span>, or any AI assistant.
+                  <p style={{ fontFamily: "var(--font-inter)", fontSize: "0.8rem", color: "var(--ink-low)", lineHeight: 1.6 }}>
+                    Works with <span style={{ color: "var(--ink)" }}>ChatGPT</span>, <span style={{ color: "var(--ink)" }}>Claude</span>, <span style={{ color: "var(--ink)" }}>Gemini</span>, <span style={{ color: "var(--ink)" }}>Grok</span>, or any AI assistant.
                   </p>
                 </div>
               </details>
@@ -836,19 +830,17 @@ export default function PlayPage() {
 
             {/* TX status */}
             {(commitTxHash || revealTxHash || activeError) && (
-              <div className="rift-panel" style={{ borderRadius: "2px", padding: "20px" }}>
-                <p style={{ fontFamily: "var(--font-roboto-mono)", fontSize: "0.72rem", letterSpacing: "0.2em", color: "var(--text-dim)", marginBottom: "14px" }}>
-                  TRANSACTION STATUS
-                </p>
+              <div className="p-panel" style={{ padding: "20px" }}>
+                <p className="label-mono" style={{ marginBottom: "14px" }}>TRANSACTION STATUS</p>
                 {activeError && (
                   <div style={{ marginBottom: "12px" }}>
-                    <span style={{ fontFamily: "var(--font-roboto-mono)", fontSize: "0.72rem", letterSpacing: "0.18em", color: "var(--red-alert)", display: "block", marginBottom: "4px" }}>ERROR</span>
-                    <span style={{ fontFamily: "var(--font-inter)", fontSize: "0.875rem", color: "var(--text-muted)" }}>{friendlyError(activeError.message, COMMIT_BLOCKS)}</span>
+                    <span style={{ fontFamily: "var(--font-roboto-mono)", fontSize: "0.72rem", letterSpacing: "0.18em", color: "var(--crimson)", display: "block", marginBottom: "4px" }}>ERROR</span>
+                    <span style={{ fontFamily: "var(--font-inter)", fontSize: "0.875rem", color: "var(--ink-mid)" }}>{friendlyError(activeError.message, COMMIT_BLOCKS)}</span>
                   </div>
                 )}
                 {commitTxHash && (
                   <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "16px", marginBottom: "8px" }}>
-                    <span style={{ fontFamily: "var(--font-roboto-mono)", fontSize: "0.68rem", letterSpacing: "0.2em", color: "var(--text-dim)", flexShrink: 0 }}>SEAL TX</span>
+                    <span className="label-mono" style={{ flexShrink: 0 }}>SEAL TX</span>
                     <a href={`${EXPLORER}/${commitTxHash}`} target="_blank" rel="noopener noreferrer"
                       style={{ fontFamily: "var(--font-roboto-mono)", fontSize: "0.72rem", color: "var(--amber)", wordBreak: "break-all", textAlign: "right" }}>
                       {commitTxHash} ↗
@@ -857,7 +849,7 @@ export default function PlayPage() {
                 )}
                 {revealTxHash && (
                   <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "16px" }}>
-                    <span style={{ fontFamily: "var(--font-roboto-mono)", fontSize: "0.68rem", letterSpacing: "0.2em", color: "var(--text-dim)", flexShrink: 0 }}>BREAK TX</span>
+                    <span className="label-mono" style={{ flexShrink: 0 }}>BREAK TX</span>
                     <a href={`${EXPLORER}/${revealTxHash}`} target="_blank" rel="noopener noreferrer"
                       style={{ fontFamily: "var(--font-roboto-mono)", fontSize: "0.72rem", color: "var(--cyan)", wordBreak: "break-all", textAlign: "right" }}>
                       {revealTxHash} ↗
@@ -866,6 +858,7 @@ export default function PlayPage() {
                 )}
               </div>
             )}
+
           </div>
         </div>
       </div>

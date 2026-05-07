@@ -1,18 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { createPublicClient, http } from "viem";
 import { hexToBytes } from "viem/utils";
-import { monadTestnet } from "@/lib/wagmi";
 import Link from "next/link";
-
-const rpcUrl = process.env.NEXT_PUBLIC_RPC_URL ?? "https://testnet-rpc.monad.xyz";
-
-const client = createPublicClient({
-  chain: monadTestnet,
-  transport: http(rpcUrl),
-  pollingInterval: 2_000,
-});
 
 function buildArgContracts(): Record<string, string> {
   const entries: Record<string, string> = {};
@@ -58,7 +48,6 @@ function getArgLabel(to: `0x${string}` | null): string | null {
 
 const mono: React.CSSProperties = { fontFamily: "var(--font-roboto-mono)" };
 
-// Module-level cache — same calldata selector appears in many txs (js-cache-function-results)
 const decodeCache = new Map<string, { display: string; decoded: boolean }>();
 
 function decodeInputCached(input: `0x${string}`): { display: string; decoded: boolean } {
@@ -66,8 +55,6 @@ function decodeInputCached(input: `0x${string}`): { display: string; decoded: bo
   if (cached) return cached;
   const result = decodeInput(input);
   if (decodeCache.size > 2000) {
-    // Evict the 500 oldest entries (Map preserves insertion order) instead of
-    // nuking the whole cache, which would cause a storm of 2000 synchronous misses.
     let evicted = 0;
     for (const k of decodeCache.keys()) {
       decodeCache.delete(k);
@@ -87,60 +74,86 @@ export default function ExplorePage() {
   const bottomRef    = useRef<HTMLDivElement>(null);
   const shouldScroll = useRef(true);
   const listRef      = useRef<HTMLDivElement>(null);
-  const unwatchRef   = useRef<(() => void) | null>(null);
+  const lastBlockRef = useRef<string | null>(null);
   const retryCount   = useRef(0);
-  const retryTimer   = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const mountedRef   = useRef(true);
 
-  const startWatcher = useCallback(() => {
-    if (unwatchRef.current) unwatchRef.current();
-    const unwatch = client.watchBlocks({
-      includeTransactions: true,
-      onBlock(block) {
-        setStatus("live");
-        retryCount.current = 0;
-        setLatestBlock(block.number ?? null);
-        if (!Array.isArray(block.transactions) || block.transactions.length === 0) return;
-        type RawTx = { hash: `0x${string}`; from: `0x${string}`; to: `0x${string}` | null; input: `0x${string}` };
-        const raw = block.transactions as unknown as RawTx[];
-        const entries: TxEntry[] = raw
-          .filter((tx) => tx && typeof tx.hash === "string" && typeof tx.from === "string" && typeof tx.input === "string")
-          .map((tx, i) => ({
-            key: `${tx.hash}-${i}`, blockNumber: block.number ?? 0n,
-            hash: tx.hash, from: tx.from, to: tx.to ?? null, input: tx.input,
-          }));
-        setTxs(prev => [...prev, ...entries].slice(-MAX_TXS));
-      },
-      onError() {
-        setStatus("error");
-        if (unwatchRef.current) { unwatchRef.current(); unwatchRef.current = null; }
-        const delay = Math.min(1000 * 2 ** retryCount.current, 30_000);
-        retryCount.current += 1;
-        retryTimer.current = setTimeout(() => { setStatus("connecting"); startWatcher(); }, delay);
-      },
-    });
-    unwatchRef.current = unwatch;
+  const fetchBlock = useCallback(async () => {
+    try {
+      const res = await fetch("/api/blocks");
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      if (!mountedRef.current) return;
+      if (data.error) throw new Error(data.error);
+
+      const { number, transactions } = data as {
+        number: string | null;
+        transactions: { hash: string; from: string; to: string | null; input: string }[];
+      };
+
+      if (!number || number === lastBlockRef.current) return;
+      lastBlockRef.current = number;
+      retryCount.current   = 0;
+
+      setStatus("live");
+      setLatestBlock(BigInt(number));
+
+      if (!Array.isArray(transactions) || transactions.length === 0) return;
+
+      const entries: TxEntry[] = transactions
+        .filter(tx => tx && typeof tx.hash === "string" && typeof tx.from === "string")
+        .map((tx, i) => ({
+          key:         `${tx.hash}-${i}`,
+          blockNumber: BigInt(number),
+          hash:        tx.hash as `0x${string}`,
+          from:        tx.from as `0x${string}`,
+          to:          tx.to as `0x${string}` | null,
+          input:       (tx.input ?? "0x") as `0x${string}`,
+        }));
+
+      setTxs(prev => [...prev, ...entries].slice(-MAX_TXS));
+    } catch {
+      if (!mountedRef.current) return;
+      setStatus("error");
+      retryCount.current += 1;
+    }
   }, []);
 
   useEffect(() => {
-    startWatcher();
+    mountedRef.current = true;
+    let timeoutId: ReturnType<typeof setTimeout>;
+
+    function scheduleNext() {
+      if (!mountedRef.current) return;
+      const delay = status === "error"
+        ? Math.min(3_000 * Math.pow(2, retryCount.current - 1), 30_000)
+        : 3_000;
+      timeoutId = setTimeout(async () => {
+        if (status === "error") setStatus("connecting");
+        await fetchBlock();
+        scheduleNext();
+      }, delay);
+    }
+
+    fetchBlock().then(scheduleNext);
+
     return () => {
-      if (unwatchRef.current) unwatchRef.current();
-      if (retryTimer.current) clearTimeout(retryTimer.current);
+      mountedRef.current = false;
+      clearTimeout(timeoutId);
     };
-  }, [startWatcher]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetchBlock]);
 
   useEffect(() => {
     if (shouldScroll.current) bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [txs]);
 
-  // Stable ref — only accesses other refs, no state deps (rerender-use-ref-transient-values)
   const handleScroll = useCallback(() => {
     const el = listRef.current;
     if (!el) return;
     shouldScroll.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
   }, []);
 
-  // Passive scroll listener avoids blocking the main thread (client-passive-event-listeners)
   useEffect(() => {
     const el = listRef.current;
     if (!el) return;
@@ -153,10 +166,12 @@ export default function ExplorePage() {
     return { displayed: filterARG ? argTxs : txs, argCount: argTxs.length };
   }, [txs, filterARG]);
 
-  /* Status colors — amber for live (detective feel), pink for error */
+  const statusDotClass =
+    status === "live"  ? "dot dot-amber" :
+    status === "error" ? "dot dot-red"   : "dot dot-mono";
   const statusColor =
-    status === "live"  ? "var(--amber)"  :
-    status === "error" ? "var(--red-alert)" : "#FFAE45";
+    status === "live"  ? "var(--amber)"   :
+    status === "error" ? "var(--crimson)" : "var(--orange)";
   const statusLabel =
     status === "live"  ? "FEED LIVE" :
     status === "error" ? `SIGNAL LOST #${retryCount.current}` : "CONNECTING";
@@ -164,19 +179,24 @@ export default function ExplorePage() {
   return (
     <div
       className="flex flex-col"
-      style={{ height: "calc(100dvh - 3.5rem)", color: "var(--text)" }}
+      style={{ height: "calc(100dvh - 3.5rem)" }}
     >
       {/* ── SURVEILLANCE HEADER ───────────────────────────────────── */}
       <div
         style={{
-          background:    "rgba(7,4,15,0.97)",
-          borderBottom:  "1px solid rgba(212,165,116,0.14)",
+          background:     "rgba(3,1,8,0.97)",
+          borderBottom:   "1px solid var(--wire-amber)",
           backdropFilter: "blur(20px)",
           flexShrink: 0,
         }}
       >
-        {/* Top amber accent line */}
-        <div style={{ height: "1px", background: "linear-gradient(90deg, transparent, var(--amber) 30%, var(--purple) 70%, transparent)" }} aria-hidden="true" />
+        <div
+          style={{
+            height: "1px",
+            background: "linear-gradient(90deg, transparent, var(--amber) 30%, var(--mono) 70%, transparent)",
+          }}
+          aria-hidden="true"
+        />
 
         {/* Top row */}
         <div className="flex items-center justify-between px-4 sm:px-6 py-4">
@@ -185,22 +205,10 @@ export default function ExplorePage() {
             <div className="relative flex items-center justify-center w-8 h-8 shrink-0">
               <span
                 className="absolute w-full h-full rounded-full"
-                style={{
-                  background: statusColor,
-                  opacity: 0.10,
-                  animation: status === "live" ? "amber-pulse 2.4s ease-in-out infinite" : "none",
-                }}
+                style={{ background: statusColor, opacity: 0.10 }}
                 aria-hidden="true"
               />
-              <span
-                className="w-2.5 h-2.5 rounded-full"
-                style={{
-                  background: statusColor,
-                  boxShadow: `0 0 10px ${statusColor}`,
-                  animation: status === "live" ? "amber-pulse 2.4s ease-in-out infinite" : "none",
-                }}
-                aria-hidden="true"
-              />
+              <span className={statusDotClass} style={{ width: "10px", height: "10px" }} aria-hidden="true" />
             </div>
 
             <div>
@@ -211,7 +219,7 @@ export default function ExplorePage() {
                   fontSize: "clamp(0.9rem, 2.5vw, 1.1rem)",
                   textTransform: "uppercase",
                   letterSpacing: "0.12em",
-                  color: "var(--text)",
+                  color: "var(--ink)",
                 }}
               >
                 Surveillance Feed
@@ -225,13 +233,17 @@ export default function ExplorePage() {
           <div className="flex items-center gap-5">
             {latestBlock !== null && (
               <div className="hidden sm:flex flex-col items-end">
-                <span style={{ ...mono, fontSize: "0.6rem", letterSpacing: "0.2em", color: "var(--text-dim)" }}>LATEST BLOCK</span>
-                <span className="tabular-nums" style={{ ...mono, fontSize: "0.82rem", color: "var(--amber)", letterSpacing: "0.06em" }}>#{latestBlock.toString()}</span>
+                <span style={{ ...mono, fontSize: "0.60rem", letterSpacing: "0.2em", color: "var(--ink-low)" }}>LATEST BLOCK</span>
+                <span className="tabular-nums" style={{ ...mono, fontSize: "0.82rem", color: "var(--amber)", letterSpacing: "0.06em" }}>
+                  #{latestBlock.toString()}
+                </span>
               </div>
             )}
             <div className="flex flex-col items-end">
-              <span style={{ ...mono, fontSize: "0.6rem", letterSpacing: "0.2em", color: "var(--text-dim)" }}>BUFFER</span>
-              <span className="tabular-nums" style={{ ...mono, fontSize: "0.82rem", color: "var(--text)", letterSpacing: "0.06em" }}>{txs.length}/{MAX_TXS}</span>
+              <span style={{ ...mono, fontSize: "0.60rem", letterSpacing: "0.2em", color: "var(--ink-low)" }}>BUFFER</span>
+              <span className="tabular-nums" style={{ ...mono, fontSize: "0.82rem", color: "var(--ink)", letterSpacing: "0.06em" }}>
+                {txs.length}/{MAX_TXS}
+              </span>
             </div>
           </div>
         </div>
@@ -244,11 +256,11 @@ export default function ExplorePage() {
           <div className="flex items-center gap-5">
             <span className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-sm shrink-0" style={{ background: "rgba(212,165,116,0.7)" }} aria-hidden="true" />
-              <span style={{ ...mono, fontSize: "0.65rem", letterSpacing: "0.16em", color: "var(--text-dim)" }}>ARG contract tx</span>
+              <span style={{ ...mono, fontSize: "0.65rem", letterSpacing: "0.16em", color: "var(--ink-low)" }}>ARG contract tx</span>
             </span>
             <span className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-sm shrink-0" style={{ background: "rgba(110,84,255,0.7)" }} aria-hidden="true" />
-              <span style={{ ...mono, fontSize: "0.65rem", letterSpacing: "0.16em", color: "var(--text-dim)" }}>calldata detected</span>
+              <span style={{ ...mono, fontSize: "0.65rem", letterSpacing: "0.16em", color: "var(--ink-low)" }}>calldata detected</span>
             </span>
           </div>
 
@@ -259,12 +271,12 @@ export default function ExplorePage() {
               ...mono,
               fontSize:      "0.68rem",
               letterSpacing: "0.16em",
-              border:     filterARG ? "1px solid rgba(212,165,116,0.55)" : "1px solid rgba(110,84,255,0.22)",
-              background:  filterARG ? "rgba(212,165,116,0.07)" : "rgba(110,84,255,0.04)",
-              color:       filterARG ? "var(--amber)" : "var(--text-dim)",
+              border:     filterARG ? "1px solid var(--amber-wire)" : "1px solid var(--wire)",
+              background:  filterARG ? "var(--amber-fog)"          : "var(--mono-fog)",
+              color:       filterARG ? "var(--amber)"              : "var(--ink-low)",
             }}
           >
-            <span className="w-1.5 h-1.5 rounded-full" style={{ background: filterARG ? "var(--amber)" : "var(--text-dim)" }} aria-hidden="true" />
+            <span className="w-1.5 h-1.5 rounded-full" style={{ background: filterARG ? "var(--amber)" : "var(--ink-low)" }} aria-hidden="true" />
             ARG ONLY
             {argCount > 0 && (
               <span
@@ -288,7 +300,7 @@ export default function ExplorePage() {
           }}
         >
           {["BLOCK", "TX HASH", "FROM", "TO", "CALLDATA"].map(h => (
-            <span key={h} style={{ ...mono, fontSize: "0.62rem", letterSpacing: "0.22em", color: "var(--text-dim)" }}>{h}</span>
+            <span key={h} style={{ ...mono, fontSize: "0.62rem", letterSpacing: "0.22em", color: "var(--ink-low)" }}>{h}</span>
           ))}
         </div>
       </div>
@@ -296,19 +308,19 @@ export default function ExplorePage() {
       {/* ── FEED ─────────────────────────────────────────────────── */}
       <div
         ref={listRef}
-        className="flex-1 min-h-0 overflow-y-auto"
-        style={{ background: "rgba(7,4,15,0.55)" }}
+        className="flex-1 min-h-0 overflow-y-auto no-scrollbar"
+        style={{ background: "rgba(3,1,8,0.55)" }}
       >
         {displayed.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-48 gap-3">
             <span
               className="animate-pulse"
-              style={{ ...mono, fontSize: "0.72rem", letterSpacing: "0.22em", color: "var(--text-dim)" }}
+              style={{ ...mono, fontSize: "0.72rem", letterSpacing: "0.22em", color: "var(--ink-low)" }}
             >
               {filterARG ? "NO ARG TRANSACTIONS INTERCEPTED" : "AWAITING SIGNAL"}
             </span>
-            <span style={{ ...mono, fontSize: "0.65rem", letterSpacing: "0.14em", color: "var(--text-dim)", opacity: 0.55 }}>
-              {filterARG ? "Toggle filter to see all transactions" : "Monitoring Monad Testnet — polling every 2s"}
+            <span style={{ ...mono, fontSize: "0.65rem", letterSpacing: "0.14em", color: "var(--ink-trace)" }}>
+              {filterARG ? "Toggle filter to see all transactions" : "Monitoring Monad Testnet — polling every 3s"}
             </span>
           </div>
         ) : displayed.map(tx => {
@@ -337,30 +349,30 @@ export default function ExplorePage() {
                 className="hidden sm:grid px-4 sm:px-6 py-2 items-center"
                 style={{ gridTemplateColumns: "80px 150px 130px 130px 1fr", gap: "12px" }}
               >
-                <span className="tabular-nums" style={{ ...mono, fontSize: "0.72rem", color: "var(--text-dim)" }}>
+                <span className="tabular-nums" style={{ ...mono, fontSize: "0.72rem", color: "var(--ink-low)" }}>
                   {tx.blockNumber.toString()}
                 </span>
                 <span style={{ ...mono, fontSize: "0.72rem", color: isARG ? "var(--amber)" : "var(--cyan)", opacity: 0.9 }}>
                   {shorten(tx.hash, 10, 6)}
                 </span>
-                <span style={{ ...mono, fontSize: "0.72rem", color: "var(--text-muted)" }}>
+                <span style={{ ...mono, fontSize: "0.72rem", color: "var(--ink-mid)" }}>
                   {shorten(tx.from, 8, 5)}
                 </span>
                 <span className="truncate" style={{ ...mono, fontSize: "0.72rem" }}>
                   {isARG ? (
                     <span style={{ color: "var(--amber)" }}>{argLabel}</span>
                   ) : tx.to ? (
-                    <span style={{ color: "var(--text-dim)" }}>{shorten(tx.to, 6, 4)}</span>
+                    <span style={{ color: "var(--ink-low)" }}>{shorten(tx.to, 6, 4)}</span>
                   ) : (
-                    <span style={{ color: "var(--text-dim)", fontStyle: "italic" }}>deploy</span>
+                    <span style={{ color: "var(--ink-trace)", fontStyle: "italic" }}>deploy</span>
                   )}
                 </span>
                 <span className="flex items-center gap-2 min-w-0">
                   {isARG ? (
                     <>
                       <span
-                        className="shrink-0 px-1.5 py-0.5"
-                        style={{ ...mono, fontSize: "0.62rem", letterSpacing: "0.14em", fontWeight: 700, background: "rgba(212,165,116,0.12)", color: "var(--amber)", border: "1px solid rgba(212,165,116,0.3)" }}
+                        className="evidence-tag shrink-0"
+                        style={{ fontSize: "0.58rem", letterSpacing: "0.14em" }}
                       >
                         ARG TX
                       </span>
@@ -373,15 +385,15 @@ export default function ExplorePage() {
                   ) : hasCalldata ? (
                     <>
                       <span
-                        className="shrink-0 px-1.5 py-0.5"
-                        style={{ ...mono, fontSize: "0.62rem", letterSpacing: "0.14em", fontWeight: 700, background: "rgba(110,84,255,0.10)", color: "var(--purple)", border: "1px solid rgba(110,84,255,0.28)" }}
+                        className="case-badge shrink-0"
+                        style={{ fontSize: "0.58rem", letterSpacing: "0.14em" }}
                       >
                         CLUE?
                       </span>
-                      <span className="truncate" style={{ ...mono, fontSize: "0.72rem", color: decoded ? "var(--purple-light)" : "var(--text-dim)" }}>{display}</span>
+                      <span className="truncate" style={{ ...mono, fontSize: "0.72rem", color: decoded ? "var(--mono-pale)" : "var(--ink-low)" }}>{display}</span>
                     </>
                   ) : (
-                    <span style={{ ...mono, fontSize: "0.72rem", color: "var(--text-dim)", fontStyle: "italic" }}>transfer</span>
+                    <span style={{ ...mono, fontSize: "0.72rem", color: "var(--ink-trace)", fontStyle: "italic" }}>transfer</span>
                   )}
                 </span>
               </div>
@@ -393,18 +405,18 @@ export default function ExplorePage() {
                     {shorten(tx.hash, 12, 6)}
                   </span>
                   {isARG ? (
-                    <span className="px-1.5 py-0.5" style={{ ...mono, fontSize: "0.62rem", fontWeight: 700, background: "rgba(212,165,116,0.12)", color: "var(--amber)", border: "1px solid rgba(212,165,116,0.3)" }}>ARG TX</span>
+                    <span className="evidence-tag" style={{ fontSize: "0.58rem" }}>ARG TX</span>
                   ) : hasCalldata ? (
-                    <span className="px-1.5 py-0.5" style={{ ...mono, fontSize: "0.62rem", fontWeight: 700, background: "rgba(110,84,255,0.10)", color: "var(--purple)", border: "1px solid rgba(110,84,255,0.28)" }}>CLUE?</span>
+                    <span className="case-badge" style={{ fontSize: "0.58rem" }}>CLUE?</span>
                   ) : null}
                 </div>
-                <div className="flex items-center gap-3" style={{ ...mono, fontSize: "0.65rem", letterSpacing: "0.12em", color: "var(--text-dim)" }}>
+                <div className="flex items-center gap-3" style={{ ...mono, fontSize: "0.65rem", letterSpacing: "0.12em", color: "var(--ink-low)" }}>
                   <span className="tabular-nums">#{tx.blockNumber.toString()}</span>
                   <span>{shorten(tx.from, 8, 4)}</span>
                   {isARG && <span style={{ color: "var(--amber)" }}>{argLabel}</span>}
                 </div>
                 {hasCalldata && display && (
-                  <span className="truncate" style={{ ...mono, fontSize: "0.65rem", color: isARG ? "rgba(212,165,116,0.75)" : decoded ? "var(--purple-light)" : "var(--text-dim)" }}>
+                  <span className="truncate" style={{ ...mono, fontSize: "0.65rem", color: isARG ? "rgba(212,165,116,0.75)" : decoded ? "var(--mono-pale)" : "var(--ink-low)" }}>
                     {display}
                   </span>
                 )}
@@ -415,31 +427,24 @@ export default function ExplorePage() {
         <div ref={bottomRef} />
       </div>
 
-      {/* ── FOOTER ───────────────────────────────────────────────── */}
+      {/* ── STATUS BAR ───────────────────────────────────────────── */}
       <div
         className="flex items-center justify-between px-4 sm:px-6 py-3 shrink-0"
         style={{
-          background:     "rgba(7,4,15,0.97)",
-          borderTop:      "1px solid rgba(212,165,116,0.12)",
+          background:     "rgba(3,1,8,0.97)",
+          borderTop:      "1px solid var(--wire-amber)",
           backdropFilter: "blur(16px)",
         }}
       >
-        <span
-          style={{
-            fontFamily: "var(--font-special-elite), monospace",
-            fontSize: "0.65rem",
-            letterSpacing: "0.2em",
-            color: "var(--text-dim)",
-          }}
-        >
+        <span className="label-case" style={{ color: "var(--ink-low)" }}>
           CHAIN_DETECTIVE · MONAD TESTNET
         </span>
         <Link
           href="/play"
           className="flex items-center min-h-[44px] transition-colors duration-200"
-          style={{ ...mono, fontSize: "0.68rem", letterSpacing: "0.2em", color: "var(--text-dim)" }}
+          style={{ ...mono, fontSize: "0.68rem", letterSpacing: "0.2em", color: "var(--ink-low)" }}
           onMouseEnter={e => (e.currentTarget.style.color = "var(--amber)")}
-          onMouseLeave={e => (e.currentTarget.style.color = "var(--text-dim)")}
+          onMouseLeave={e => (e.currentTarget.style.color = "var(--ink-low)")}
         >
           OPEN CASE →
         </Link>
