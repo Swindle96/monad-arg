@@ -6,50 +6,168 @@ import { ConnectKitButton } from "connectkit";
 import { useState } from "react";
 
 const NAV_LINKS = [
-  { href: "/play",        label: "CASE FILES" },
-  { href: "/explore",     label: "INTEL FEED" },
-  { href: "/leaderboard", label: "FIELD AGENTS" },
+  { href: "/play",        label: "CASE FILES",  code: "01" },
+  { href: "/explore",     label: "INTEL FEED",  code: "02" },
+  { href: "/leaderboard", label: "FIELD AGENTS", code: "03" },
 ];
 
-/* Detective badge / shield SVG icon */
-function DetectiveBadge({ className }: { className?: string }) {
+/* ── Shield + magnifier badge ─────────────────────────────────── */
+function Badge() {
   return (
-    <svg
-      width="20"
-      height="22"
-      viewBox="0 0 20 22"
-      fill="none"
-      aria-hidden="true"
-      className={className}
-    >
-      {/* Shield outline */}
+    <svg width="24" height="27" viewBox="0 0 24 27" fill="none" aria-hidden="true">
       <path
-        d="M10 1L18 4.5V11C18 15.5 14.5 19 10 20.5C5.5 19 2 15.5 2 11V4.5L10 1Z"
+        d="M12 1L22 5.5V13C22 18.5 17.5 23 12 24.5C6.5 23 2 18.5 2 13V5.5L12 1Z"
         stroke="#6E54FF"
-        strokeWidth="1.4"
+        strokeWidth="1.2"
         strokeLinejoin="round"
-        fill="rgba(110,84,255,0.08)"
+        fill="rgba(110,84,255,0.07)"
       />
-      {/* Inner shield glow fill */}
       <path
-        d="M10 3.5L16 6V11C16 14.5 13.5 17.2 10 18.5C6.5 17.2 4 14.5 4 11V6L10 3.5Z"
-        fill="rgba(110,84,255,0.06)"
-        stroke="rgba(110,84,255,0.25)"
-        strokeWidth="0.8"
+        d="M12 4L19 7.5V13C19 17 16.5 20.5 12 21.8C7.5 20.5 5 17 5 13V7.5L12 4Z"
+        fill="rgba(110,84,255,0.05)"
+        stroke="rgba(110,84,255,0.22)"
+        strokeWidth="0.7"
       />
-      {/* Magnifying glass circle */}
-      <circle cx="9.5" cy="10.5" r="3" stroke="#6E54FF" strokeWidth="1.2" />
-      {/* Magnifying glass handle */}
-      <line
-        x1="11.7" y1="12.7" x2="14" y2="15"
-        stroke="#D4A574"
-        strokeWidth="1.4"
-        strokeLinecap="round"
-      />
+      {/* Magnifying glass */}
+      <circle cx="11" cy="12.5" r="3.8" stroke="#6E54FF" strokeWidth="1.2" />
+      <line x1="13.8" y1="15.3" x2="16.5" y2="18" stroke="#D4A574" strokeWidth="1.5" strokeLinecap="round" />
     </svg>
   );
 }
 
+/* ── Mobile full-screen menu ──────────────────────────────────── */
+function MobileMenu({ open, onClose, pathname }: {
+  open: boolean;
+  onClose: () => void;
+  pathname: string;
+}) {
+  if (!open) return null;
+  return (
+    <div
+      className="fixed inset-0 z-50 sm:hidden flex flex-col"
+      style={{ background: "rgba(3,1,8,0.98)", backdropFilter: "blur(24px)" }}
+    >
+      {/* Top bar */}
+      <div
+        className="flex items-center justify-between px-5 h-14 shrink-0"
+        style={{ borderBottom: "1px solid rgba(212,165,116,0.14)" }}
+      >
+        <div className="flex items-center gap-2.5">
+          <Badge />
+          <span
+            style={{
+              fontFamily: "var(--font-syne), sans-serif",
+              fontWeight: 800,
+              fontSize: "0.80rem",
+              letterSpacing: "0.18em",
+              color: "#DDD7FE",
+              textTransform: "uppercase",
+            }}
+          >
+            CHAIN_DETECTIVE
+          </span>
+        </div>
+        <button
+          onClick={onClose}
+          className="flex items-center justify-center w-[44px] h-[44px]"
+          aria-label="Close navigation"
+          style={{ color: "var(--ink-low)" }}
+        >
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+            <line x1="2" y1="2" x2="16" y2="16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            <line x1="16" y1="2" x2="2" y2="16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+          </svg>
+        </button>
+      </div>
+
+      {/* Header label */}
+      <div className="px-6 pt-8 pb-4">
+        <p
+          style={{
+            fontFamily: "var(--font-special-elite), monospace",
+            fontSize: "0.62rem",
+            letterSpacing: "0.3em",
+            color: "rgba(212,165,116,0.45)",
+            textTransform: "uppercase",
+          }}
+        >
+          Investigation Index
+        </p>
+      </div>
+
+      {/* Links */}
+      <nav className="flex-1 flex flex-col">
+        {NAV_LINKS.map(({ href, label, code }) => {
+          const active = pathname === href;
+          return (
+            <Link
+              key={href}
+              href={href}
+              onClick={onClose}
+              className="flex items-center gap-4 min-h-[64px] px-6"
+              style={{
+                borderBottom: "1px solid rgba(110,84,255,0.09)",
+                borderLeft: active ? "2px solid var(--amber)" : "2px solid transparent",
+                background: active ? "rgba(110,84,255,0.06)" : "transparent",
+              }}
+            >
+              <span
+                style={{
+                  fontFamily: "var(--font-roboto-mono), monospace",
+                  fontSize: "0.60rem",
+                  letterSpacing: "0.2em",
+                  color: active ? "var(--amber)" : "var(--ink-trace)",
+                  minWidth: "24px",
+                }}
+              >
+                {code}
+              </span>
+              <span
+                style={{
+                  fontFamily: "var(--font-syne), sans-serif",
+                  fontWeight: 700,
+                  fontSize: "1.05rem",
+                  letterSpacing: "0.06em",
+                  color: active ? "var(--ink)" : "var(--ink-mid)",
+                  textTransform: "uppercase",
+                }}
+              >
+                {label}
+              </span>
+              {active && (
+                <span
+                  className="ml-auto dot dot-amber"
+                  aria-hidden="true"
+                  style={{ width: "6px", height: "6px" }}
+                />
+              )}
+            </Link>
+          );
+        })}
+      </nav>
+
+      {/* Footer */}
+      <div
+        className="px-6 py-5 flex items-center gap-3 shrink-0"
+        style={{ borderTop: "1px solid rgba(212,165,116,0.10)" }}
+      >
+        <span className="dot dot-amber" style={{ width: "6px", height: "6px" }} aria-hidden="true" />
+        <span
+          style={{
+            fontFamily: "var(--font-roboto-mono), monospace",
+            fontSize: "0.60rem",
+            letterSpacing: "0.22em",
+            color: "rgba(212,165,116,0.50)",
+          }}
+        >
+          CASE OPEN · MONAD TESTNET
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/* ── Main Navbar ──────────────────────────────────────────────── */
 export default function Navbar() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -57,146 +175,182 @@ export default function Navbar() {
   return (
     <>
       <nav
-        className="sticky top-0 z-40 backdrop-blur-2xl"
+        className="sticky top-0 z-40"
         style={{
-          background: "rgba(7, 4, 15, 0.88)",
-          borderBottom: "1px solid rgba(212,165,116,0.14)",
-          boxShadow: "0 1px 0 rgba(110,84,255,0.07), 0 8px 32px rgba(0,0,0,0.45)",
+          background: "rgba(3,1,8,0.90)",
+          borderBottom: "1px solid rgba(212,165,116,0.12)",
+          backdropFilter: "blur(24px)",
+          boxShadow: "0 1px 0 rgba(110,84,255,0.06), 0 6px 28px rgba(0,0,0,0.5)",
         }}
       >
-        <div className="flex items-center justify-between px-4 sm:px-6 h-14">
+        {/* Accent line top */}
+        <div
+          style={{
+            height: "1px",
+            background: "linear-gradient(90deg, transparent, rgba(110,84,255,0.55) 30%, rgba(212,165,116,0.35) 70%, transparent)",
+          }}
+          aria-hidden="true"
+        />
 
-          {/* ── Logo ── */}
-          <div className="flex items-center gap-6 min-w-0">
-            <Link
-              href="/"
-              className="flex items-center gap-2.5 group min-h-[44px]"
-              aria-label="CHAIN_DETECTIVE — Return to Home"
-            >
-              {/* Spinning ring around badge */}
-              <div className="relative w-8 h-8 flex items-center justify-center shrink-0">
-                <div
-                  className="absolute inset-0 rounded-full spin-slow"
-                  style={{
-                    border: "1px dashed rgba(212,165,116,0.3)",
-                  }}
-                  aria-hidden="true"
-                />
-                <DetectiveBadge className="group-hover:drop-shadow-[0_0_8px_#6E54FF] transition-all duration-300" />
-              </div>
-              {/* Brand text */}
-              <div className="flex flex-col leading-none">
-                <span
-                  style={{
-                    fontFamily: "var(--font-special-elite), monospace",
-                    fontSize: "0.72rem",
-                    letterSpacing: "0.3em",
-                    color: "rgba(212,165,116,0.6)",
-                    textTransform: "uppercase",
-                    lineHeight: 1,
-                    marginBottom: "2px",
-                  }}
-                >
-                  CASE FILE
-                </span>
-                <span
-                  style={{
-                    fontFamily: "var(--font-syne), sans-serif",
-                    fontWeight: 800,
-                    fontSize: "0.82rem",
-                    letterSpacing: "0.18em",
-                    color: "#DDD7FE",
-                    textTransform: "uppercase",
-                    lineHeight: 1,
-                    transition: "color 0.2s",
-                  }}
-                  className="group-hover:text-white"
-                >
-                  CHAIN_DETECTIVE
-                </span>
-              </div>
-            </Link>
+        <div className="flex items-center justify-between px-4 sm:px-6 lg:px-8 h-14">
 
-            {/* ── Desktop nav ── */}
-            <div className="hidden sm:flex items-center gap-0.5">
-              {NAV_LINKS.map(({ href, label }) => {
-                const active = pathname === href;
-                return (
-                  <Link
-                    key={href}
-                    href={href}
-                    className="relative min-h-[44px] px-4 flex items-center transition-colors duration-200 group"
-                    style={{
-                      fontFamily: "var(--font-roboto-mono), monospace",
-                      fontSize: "0.68rem",
-                      letterSpacing: "0.16em",
-                      color: active ? "#DDD7FE" : "var(--text-dim)",
-                      background: active ? "rgba(110,84,255,0.09)" : "transparent",
-                    }}
-                  >
-                    {label}
-                    {/* Active — amber underline */}
-                    <span
-                      className="absolute bottom-0 left-0 right-0 h-[2px] transition-all duration-300"
-                      style={{
-                        background: active
-                          ? "linear-gradient(90deg, var(--amber), var(--purple))"
-                          : "transparent",
-                        boxShadow: active ? "0 0 8px rgba(212,165,116,0.5)" : "none",
-                        opacity: active ? 1 : 0,
-                      }}
-                      aria-hidden="true"
-                    />
-                    {/* Hover underline */}
-                    <span
-                      className="absolute bottom-0 left-0 right-0 h-[2px] opacity-0 group-hover:opacity-60 transition-opacity duration-200"
-                      style={{
-                        background: "linear-gradient(90deg, var(--amber), transparent)",
-                        display: active ? "none" : undefined,
-                      }}
-                      aria-hidden="true"
-                    />
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* ── Right: status + wallet + burger ── */}
-          <div className="flex items-center gap-3">
-            {/* Case status indicator — desktop */}
-            <div className="hidden lg:flex items-center gap-2 px-3 py-1.5" style={{ border: "1px solid rgba(212,165,116,0.18)", background: "rgba(212,165,116,0.04)" }}>
-              <span
-                className="w-1.5 h-1.5 rounded-full amber-pulse shrink-0"
-                style={{ background: "var(--amber)", boxShadow: "0 0 6px var(--amber)" }}
+          {/* ── LEFT: Logo ── */}
+          <Link
+            href="/"
+            className="flex items-center gap-3 group min-h-[44px] shrink-0"
+            aria-label="CHAIN_DETECTIVE — Home"
+          >
+            {/* Spinning orbit ring + badge */}
+            <div className="relative w-9 h-9 flex items-center justify-center shrink-0">
+              <div
+                className="absolute inset-0 rounded-full spin-slow"
+                style={{ border: "1px dashed rgba(212,165,116,0.28)" }}
                 aria-hidden="true"
               />
-              <span style={{ fontFamily: "var(--font-roboto-mono)", fontSize: "0.6rem", letterSpacing: "0.22em", color: "var(--amber)" }}>
+              <div
+                className="group-hover:drop-shadow-[0_0_10px_#6E54FF] transition-all duration-300"
+              >
+                <Badge />
+              </div>
+            </div>
+
+            {/* Brand text */}
+            <div className="flex flex-col leading-none">
+              <span
+                style={{
+                  fontFamily: "var(--font-special-elite), monospace",
+                  fontSize: "0.60rem",
+                  letterSpacing: "0.28em",
+                  color: "rgba(212,165,116,0.55)",
+                  textTransform: "uppercase",
+                  lineHeight: 1,
+                  marginBottom: "3px",
+                }}
+              >
+                CASE FILE
+              </span>
+              <span
+                style={{
+                  fontFamily: "var(--font-syne), sans-serif",
+                  fontWeight: 800,
+                  fontSize: "0.84rem",
+                  letterSpacing: "0.16em",
+                  color: "#DDD7FE",
+                  textTransform: "uppercase",
+                  lineHeight: 1,
+                  transition: "color 0.2s",
+                }}
+                className="group-hover:text-white"
+              >
+                CHAIN_DETECTIVE
+              </span>
+            </div>
+          </Link>
+
+          {/* ── CENTER: Desktop nav ── */}
+          <div className="hidden sm:flex items-center">
+            {NAV_LINKS.map(({ href, label, code }) => {
+              const active = pathname === href;
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  className="relative group flex items-center gap-2 min-h-[44px] px-5"
+                  style={{
+                    fontFamily: "var(--font-roboto-mono), monospace",
+                    fontSize: "0.68rem",
+                    letterSpacing: "0.16em",
+                    color: active ? "var(--ink)" : "var(--ink-low)",
+                    background: active ? "rgba(110,84,255,0.07)" : "transparent",
+                    transition: "color 0.2s, background 0.2s",
+                  }}
+                  onMouseEnter={e => {
+                    if (!active) e.currentTarget.style.color = "var(--ink-mid)";
+                  }}
+                  onMouseLeave={e => {
+                    if (!active) e.currentTarget.style.color = "var(--ink-low)";
+                  }}
+                >
+                  {/* Code number */}
+                  <span
+                    style={{
+                      fontSize: "0.56rem",
+                      letterSpacing: "0.18em",
+                      color: active ? "var(--amber)" : "var(--ink-trace)",
+                      transition: "color 0.2s",
+                    }}
+                  >
+                    {code}
+                  </span>
+                  {label}
+
+                  {/* Active underline */}
+                  <span
+                    className="absolute bottom-0 left-0 right-0 h-[2px] transition-all duration-300"
+                    style={{
+                      background: active
+                        ? "linear-gradient(90deg, var(--amber), var(--mono))"
+                        : "transparent",
+                      boxShadow: active ? "0 0 8px rgba(212,165,116,0.45)" : "none",
+                      opacity: active ? 1 : 0,
+                    }}
+                    aria-hidden="true"
+                  />
+                  {/* Hover underline */}
+                  <span
+                    className="absolute bottom-0 left-0 right-0 h-[2px] opacity-0 group-hover:opacity-40 transition-opacity duration-200"
+                    style={{
+                      background: "linear-gradient(90deg, var(--amber), transparent)",
+                      display: active ? "none" : undefined,
+                    }}
+                    aria-hidden="true"
+                  />
+                </Link>
+              );
+            })}
+          </div>
+
+          {/* ── RIGHT: Status + Wallet + Burger ── */}
+          <div className="flex items-center gap-3">
+            {/* Case open indicator — desktop only */}
+            <div
+              className="hidden lg:flex items-center gap-2 px-3 py-1.5"
+              style={{
+                border: "1px solid rgba(212,165,116,0.18)",
+                background: "rgba(212,165,116,0.04)",
+              }}
+            >
+              <span className="dot dot-amber" style={{ width: "6px", height: "6px" }} aria-hidden="true" />
+              <span
+                style={{
+                  fontFamily: "var(--font-roboto-mono), monospace",
+                  fontSize: "0.58rem",
+                  letterSpacing: "0.22em",
+                  color: "var(--amber)",
+                }}
+              >
                 CASE OPEN
               </span>
             </div>
 
             <ConnectKitButton />
 
-            {/* Hamburger — mobile */}
+            {/* Burger — mobile */}
             <button
-              className="sm:hidden flex flex-col justify-center items-center w-[44px] h-[44px] gap-[5px] rounded transition-colors hover:bg-white/5"
-              onClick={() => setOpen(o => !o)}
-              aria-label={open ? "Close navigation" : "Open navigation"}
+              className="sm:hidden flex flex-col justify-center items-center w-[44px] h-[44px] gap-[5px]"
+              onClick={() => setOpen(true)}
+              aria-label="Open navigation"
               aria-expanded={open}
+              style={{ background: "none", border: "none" }}
             >
-              {[0, 1, 2].map(i => (
+              {[20, 14, 20].map((w, i) => (
                 <span
                   key={i}
-                  className="block h-[1.5px] transition-all duration-200 rounded-full"
+                  className="block rounded-full"
                   style={{
-                    width: i === 1 ? (open ? 0 : 14) : 20,
-                    background: open ? "var(--amber)" : "#A89EC9",
-                    transform:
-                      i === 0 ? (open ? "rotate(45deg) translate(5px, 5px)" : "none") :
-                      i === 2 ? (open ? "rotate(-45deg) translate(5px,-5px)" : "none") :
-                      "none",
-                    opacity: i === 1 && open ? 0 : 1,
+                    width: `${w}px`,
+                    height: "1.5px",
+                    background: "#A89EC9",
                   }}
                   aria-hidden="true"
                 />
@@ -204,68 +358,9 @@ export default function Navbar() {
             </button>
           </div>
         </div>
-
-        {/* ── Mobile dropdown ── */}
-        {open && (
-          <div
-            className="sm:hidden border-t"
-            style={{
-              borderColor: "rgba(212,165,116,0.12)",
-              background: "rgba(7,4,15,0.99)",
-            }}
-          >
-            {/* Case file header in dropdown */}
-            <div
-              className="px-6 py-2 flex items-center gap-2"
-              style={{ borderBottom: "1px solid rgba(212,165,116,0.08)", background: "rgba(212,165,116,0.03)" }}
-            >
-              <span style={{ fontFamily: "var(--font-special-elite), monospace", fontSize: "0.6rem", letterSpacing: "0.28em", color: "rgba(212,165,116,0.5)", textTransform: "uppercase" }}>
-                Investigation Menu
-              </span>
-            </div>
-
-            {NAV_LINKS.map(({ href, label }) => {
-              const active = pathname === href;
-              return (
-                <Link
-                  key={href}
-                  href={href}
-                  onClick={() => setOpen(false)}
-                  className="flex items-center min-h-[52px] px-6 border-b transition-colors duration-150"
-                  style={{
-                    fontFamily: "var(--font-roboto-mono), monospace",
-                    fontSize: "0.72rem",
-                    letterSpacing: "0.16em",
-                    borderColor: "rgba(110,84,255,0.08)",
-                    color: active ? "#DDD7FE" : "var(--text-dim)",
-                    background: active ? "rgba(110,84,255,0.07)" : "transparent",
-                    borderLeft: active ? "2px solid var(--amber)" : "2px solid transparent",
-                  }}
-                >
-                  {label}
-                </Link>
-              );
-            })}
-
-            {/* Status in mobile menu */}
-            <div className="flex items-center gap-2 px-6 py-3" style={{ borderTop: "1px solid rgba(212,165,116,0.08)" }}>
-              <span className="w-1.5 h-1.5 rounded-full amber-pulse" style={{ background: "var(--amber)" }} aria-hidden="true" />
-              <span style={{ fontFamily: "var(--font-roboto-mono)", fontSize: "0.62rem", letterSpacing: "0.22em", color: "rgba(212,165,116,0.55)" }}>
-                CASE OPEN · MONAD TESTNET
-              </span>
-            </div>
-          </div>
-        )}
       </nav>
 
-      {/* Mobile overlay */}
-      {open && (
-        <div
-          className="fixed inset-0 z-30 sm:hidden"
-          onClick={() => setOpen(false)}
-          aria-hidden="true"
-        />
-      )}
+      <MobileMenu open={open} onClose={() => setOpen(false)} pathname={pathname} />
     </>
   );
 }

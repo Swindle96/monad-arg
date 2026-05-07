@@ -68,14 +68,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="scanlines">
+    <html lang="en" className="precinct-scanlines">
       <body
         className={`${syne.variable} ${inter.variable} ${robotoMono.variable} ${specialElite.variable}`}
       >
-        {/* Fixed background layers */}
-        <div className="rift-bg"    aria-hidden="true" />
-        <div className="rift-grid"  aria-hidden="true" />
-        <div className="film-grain" aria-hidden="true" />
+        {/* Fixed atmospheric layers */}
+        <div className="precinct-bg"    aria-hidden="true" />
+        <div className="precinct-grid"  aria-hidden="true" />
+        <div className="precinct-lines" aria-hidden="true" />
+        <div className="precinct-grain" aria-hidden="true" />
 
         <a href="#main-content" className="skip-link">Skip to content</a>
 
