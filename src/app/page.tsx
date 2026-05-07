@@ -173,8 +173,8 @@ export default function Home() {
               <Link href="/play" className="btn">
                 OPEN CASE FILE
               </Link>
-              <Link href="/explore" className="btn-ghost">
-                MONITOR FEED
+              <Link href="/leaderboard" className="btn-ghost">
+                FIELD AGENTS
               </Link>
             </div>
           </div>
@@ -457,7 +457,6 @@ export default function Home() {
           <nav aria-label="Footer navigation" className="flex gap-6">
             {[
               { href: "/play",        label: "CASE FILES" },
-              { href: "/explore",     label: "INTEL FEED" },
               { href: "/leaderboard", label: "FIELD AGENTS" },
             ].map(({ href, label }) => (
               <Link
