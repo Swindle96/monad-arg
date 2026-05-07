@@ -242,7 +242,7 @@ export default function PlayPage() {
   const rawPuzzleId       = puzzleResults?.[2]?.result;
 
   const puzzle            = rawPuzzle as PuzzleData | undefined;
-  const puzzleDescription = puzzle?.description || null;
+  const puzzleDescription = puzzle?.description?.trim() || puzzleMeta?.description || null;
   const currentPuzzleId   = rawPuzzleId as bigint | undefined;
   const puzzleCount       = rawCount    as bigint | undefined;
   const puzzleLabel       = currentPuzzleId !== undefined
