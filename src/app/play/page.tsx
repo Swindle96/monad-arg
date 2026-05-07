@@ -637,6 +637,7 @@ export default function PlayPage() {
                         </button>
                       </div>
                     ) : (
+                      <>
                       <input
                         ref={importRef}
                         type="file"
@@ -723,6 +724,7 @@ export default function PlayPage() {
                       >
                         ↑ restore from backup
                       </button>
+                      </>
                     )}
                   </div>
 
