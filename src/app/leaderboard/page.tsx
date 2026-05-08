@@ -93,10 +93,12 @@ function PodiumCard({ entry, rank }: { entry: Entry; rank: number }) {
       onMouseEnter={e => {
         e.currentTarget.style.transform = "translateY(-3px)";
         e.currentTarget.style.boxShadow = `0 16px 40px ${r.accent}18`;
+        e.currentTarget.style.zIndex = "1";
       }}
       onMouseLeave={e => {
         e.currentTarget.style.transform = "translateY(0)";
         e.currentTarget.style.boxShadow = "none";
+        e.currentTarget.style.zIndex = "";
       }}
     >
       {/* Top accent line */}

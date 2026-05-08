@@ -24,6 +24,7 @@ export default function Navbar() {
           background: "rgba(7,7,7,0.92)",
           borderBottom: "1px solid var(--border)",
           backdropFilter: "blur(20px)",
+          WebkitBackdropFilter: "blur(20px)",
         }}
       >
         <div

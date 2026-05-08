@@ -377,6 +377,7 @@ export default function PlayPage() {
           background: "rgba(7,7,7,0.95)",
           borderBottom: "1px solid var(--border)",
           backdropFilter: "blur(20px)",
+          WebkitBackdropFilter: "blur(20px)",
         }}
       >
         <div
@@ -433,8 +434,8 @@ export default function PlayPage() {
         >
           {/* ── LEFT — CASE BRIEF ─────────────────────────────── */}
           <aside
-            className="lg:sticky lg:top-28 lg:self-start"
-            style={{ display: "flex", flexDirection: "column", gap: "12px" }}
+            className="lg:sticky lg:top-[104px] lg:self-start"
+            style={{ display: "flex", flexDirection: "column", gap: "12px", zIndex: 2 }}
           >
             {/* Case panel */}
             <div
@@ -594,7 +595,7 @@ export default function PlayPage() {
           </aside>
 
           {/* ── RIGHT — INTERROGATION CONSOLE ─────────────────── */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px", isolation: "isolate" }}>
 
             {/* Success banner */}
             {isRevealSuccess && (
