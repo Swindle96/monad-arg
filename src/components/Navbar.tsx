@@ -7,7 +7,8 @@ import { useState } from "react";
 
 const NAV_LINKS = [
   { href: "/play",        label: "CASE FILES",   code: "01" },
-  { href: "/leaderboard", label: "FIELD AGENTS", code: "02" },
+  { href: "/explore",     label: "INTEL FEED",   code: "02" },
+  { href: "/leaderboard", label: "FIELD AGENTS", code: "03" },
 ];
 
 export default function Navbar() {

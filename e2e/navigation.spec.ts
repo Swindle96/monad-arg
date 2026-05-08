@@ -20,6 +20,7 @@ test.describe("Navigation", () => {
     const nav = page.getByRole("navigation").first();
     await expect(nav.getByRole("link", { name: /play|case/i })).toBeAttached();
     await expect(nav.getByRole("link", { name: /explore|intel|feed/i })).toBeAttached();
+    await expect(nav.getByRole("link", { name: /leaderboard|field|agents/i })).toBeAttached();
   });
 
   test("sitemap.xml is accessible", async ({ page }) => {

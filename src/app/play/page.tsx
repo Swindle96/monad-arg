@@ -10,13 +10,16 @@ import {
   useReadContracts,
   useAccount,
   useBlockNumber,
+  useChainId,
+  useSwitchChain,
 } from "wagmi";
 import { ConnectKitButton } from "connectkit";
 import { puzzleChainAbi, CONTRACT_ADDRESSES } from "@/lib/contracts";
 import { getPuzzleMeta, CATEGORY_COLORS } from "@/lib/puzzleData";
+import { monadTestnet } from "@/lib/wagmi";
+import { STORAGE_KEYS, ZERO_ADDR, EXPLORER_URL } from "@/lib/constants";
 
 const CONTRACT_ADDRESS       = CONTRACT_ADDRESSES.puzzleChain;
-const EXPLORER               = "https://testnet.monadexplorer.com/tx";
 const FALLBACK_COMMIT_BLOCKS = 10n;
 
 type PuzzleData = {
@@ -42,19 +45,18 @@ interface CommitData {
   commitBlock: bigint;
 }
 
-const STORAGE_KEY       = "chain_detective_commit";
 const WALLET_TIMEOUT_MS = 120_000;
 
 function saveCommit(d: CommitData) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...d, commitBlock: d.commitBlock.toString() }));
+    sessionStorage.setItem(STORAGE_KEYS.COMMIT, JSON.stringify({ ...d, commitBlock: d.commitBlock.toString() }));
   } catch (e) {
-    console.warn("[saveCommit] localStorage write failed:", e);
+    console.warn("[saveCommit] sessionStorage write failed:", e);
   }
 }
 function loadCommit(): CommitData | null {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = sessionStorage.getItem(STORAGE_KEYS.COMMIT);
     if (!raw) return null;
     const p = JSON.parse(raw);
     if (!p || typeof p.puzzleId !== "string" || typeof p.answerHex !== "string" ||
@@ -65,9 +67,12 @@ function loadCommit(): CommitData | null {
       nonce:       p.nonce as `0x${string}`,
       commitBlock: BigInt(p.commitBlock),
     };
-  } catch { return null; }
+  } catch (err) {
+    console.warn("[loadCommit] Failed to parse stored commit:", err);
+    return null;
+  }
 }
-function clearCommit() { localStorage.removeItem(STORAGE_KEY); }
+function clearCommit() { sessionStorage.removeItem(STORAGE_KEYS.COMMIT); }
 
 function downloadBackup(d: CommitData) {
   const json = JSON.stringify({ ...d, commitBlock: d.commitBlock.toString() }, null, 2);
@@ -189,6 +194,9 @@ export default function PlayPage() {
   const pendingCommitRef               = useRef<CommitData | null>(null);
   const importRef                      = useRef<HTMLInputElement>(null);
   const { address: userAddress, isConnected } = useAccount();
+  const chainId                               = useChainId();
+  const { switchChain, isPending: isSwitching } = useSwitchChain();
+  const isCorrectChain                        = chainId === monadTestnet.id;
 
   function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -206,7 +214,9 @@ export default function PlayPage() {
         };
         saveCommit(data);
         setCommit(data);
-      } catch { /* invalid file */ }
+      } catch (err) {
+        console.warn("[importFile] Invalid or malformed commit file:", err);
+      }
     };
     reader.readAsText(file);
     e.target.value = "";
@@ -246,10 +256,19 @@ export default function PlayPage() {
     ? `#${String(Number(currentPuzzleId) + 1).padStart(3, "0")}`
     : "#---";
 
-  const puzzleMeta        = currentPuzzleId !== undefined ? getPuzzleMeta(Number(currentPuzzleId)) : undefined;
+  const puzzleMeta = useMemo(
+    () => currentPuzzleId !== undefined ? getPuzzleMeta(Number(currentPuzzleId)) : undefined,
+    [currentPuzzleId]
+  );
   const puzzleDescription = puzzle?.description?.trim() || puzzleMeta?.description || null;
-  const categoryColor     = puzzleMeta ? CATEGORY_COLORS[puzzleMeta.category] : "var(--purple)";
-  const answerFormat      = puzzleMeta ? extractAnswerFormat(puzzleMeta.description) : null;
+  const categoryColor = useMemo(
+    () => (puzzleMeta ? CATEGORY_COLORS[puzzleMeta.category] : "var(--purple)"),
+    [puzzleMeta]
+  );
+  const answerFormat = useMemo(
+    () => (puzzleMeta ? extractAnswerFormat(puzzleMeta.description) : null),
+    [puzzleMeta]
+  );
 
   const { writeContract: writeCommit, data: commitTxHash, isPending: isCommitPending, error: commitWriteError, reset: resetCommit } = useWriteContract();
   const { isLoading: isCommitConfirming, isSuccess: isCommitConfirmed } = useWaitForTransactionReceipt({ hash: commitTxHash });
@@ -293,7 +312,9 @@ export default function PlayPage() {
         const onChain = result.data as CommitRecord | undefined;
         const hasOnChain = onChain?.commitment !== "0x0000000000000000000000000000000000000000000000000000000000000000";
         if (hasOnChain) { saveCommit(pending); setCommit(pending); }
-      } catch { /* refetch failed */ }
+      } catch (err) {
+        console.warn("[commitTimeout] On-chain refetch failed:", err);
+      }
       setPending(null);
     }, WALLET_TIMEOUT_MS);
     return () => clearTimeout(t);
@@ -310,7 +331,7 @@ export default function PlayPage() {
     if (!commit || currentBlock === undefined) return 0n;
     const raw = effectiveCommitBlock + COMMIT_BLOCKS - currentBlock;
     return raw > 0n ? raw : 0n;
-  }, [commit, currentBlock, effectiveCommitBlock]);
+  }, [commit, currentBlock, effectiveCommitBlock, COMMIT_BLOCKS]);
   const canReveal = commit !== null && blocksUntilReveal <= 0n && !isRevealSuccess;
 
   function encodeAnswer(raw: string): `0x${string}` | null {
@@ -325,6 +346,11 @@ export default function PlayPage() {
   function handleCommit(e: React.FormEvent) {
     e.preventDefault();
     if (!userAddress || !isConnected) return;
+    if (!isCorrectChain) return;
+    if (CONTRACT_ADDRESS === ZERO_ADDR) {
+      console.error("[play] Puzzle contract not configured — set NEXT_PUBLIC_PUZZLE_CONTRACT in .env.local");
+      return;
+    }
     if (currentBlock === undefined) return;
     const trimmed = answer.trim();
     if (!trimmed || !/^[A-Za-z0-9_.+/=-]{1,32}$/.test(trimmed)) { setEncError(true); return; }
@@ -340,6 +366,11 @@ export default function PlayPage() {
 
   function doReveal() {
     if (!commit) return;
+    if (!isCorrectChain) return;
+    if (CONTRACT_ADDRESS === ZERO_ADDR) {
+      console.error("[play] Puzzle contract not configured — set NEXT_PUBLIC_PUZZLE_CONTRACT in .env.local");
+      return;
+    }
     writeReveal({ address: CONTRACT_ADDRESS, abi: puzzleChainAbi, functionName: "revealAnswer", args: [commit.answerHex, commit.nonce] });
   }
 
@@ -607,7 +638,7 @@ export default function PlayPage() {
                 <p style={{ fontFamily: "var(--font-inter), sans-serif", fontSize: "0.875rem", color: "var(--text-dim)" }}>
                   Record written to leaderboard.{" "}
                   {revealTxHash && (
-                    <a href={`${EXPLORER}/${revealTxHash}`} target="_blank" rel="noopener noreferrer" style={{ color: "var(--acid)" }}>
+                    <a href={`${EXPLORER_URL}/${revealTxHash}`} target="_blank" rel="noopener noreferrer" style={{ color: "var(--acid)" }}>
                       View transaction ↗
                     </a>
                   )}
@@ -650,6 +681,28 @@ export default function PlayPage() {
                     </p>
                   </div>
                   <ConnectKitButton />
+                </div>
+              ) : !isCorrectChain ? (
+                <div style={{ padding: "48px 24px", display: "flex", flexDirection: "column", alignItems: "center", gap: "20px", textAlign: "center" }}>
+                  <div>
+                    <p style={{ ...mono, fontSize: "0.60rem", letterSpacing: "0.22em", color: "var(--text-faint)", marginBottom: "8px" }}>
+                      WRONG NETWORK DETECTED
+                    </p>
+                    <p style={{ fontFamily: "var(--font-inter), sans-serif", fontSize: "0.875rem", color: "var(--text-dim)" }}>
+                      CHAIN_DETECTIVE runs on{" "}
+                      <span style={{ color: "var(--purple)" }}>Monad Testnet</span>.
+                      Switch your wallet network to continue.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => switchChain({ chainId: monadTestnet.id })}
+                    disabled={isSwitching}
+                    className="btn"
+                    style={{ justifyContent: "center" }}
+                  >
+                    {isSwitching ? "SWITCHING…" : "SWITCH TO MONAD TESTNET →"}
+                  </button>
                 </div>
               ) : (
                 <div style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "24px" }}>
@@ -926,7 +979,7 @@ export default function PlayPage() {
                   <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "16px", marginBottom: "8px" }}>
                     <span style={{ ...mono, fontSize: "0.58rem", letterSpacing: "0.18em", color: "var(--text-faint)", flexShrink: 0 }}>SEAL TX</span>
                     <a
-                      href={`${EXPLORER}/${commitTxHash}`}
+                      href={`${EXPLORER_URL}/${commitTxHash}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       style={{ ...mono, fontSize: "0.68rem", color: "var(--purple)", wordBreak: "break-all", textAlign: "right" }}
@@ -939,7 +992,7 @@ export default function PlayPage() {
                   <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "16px" }}>
                     <span style={{ ...mono, fontSize: "0.58rem", letterSpacing: "0.18em", color: "var(--text-faint)", flexShrink: 0 }}>BREAK TX</span>
                     <a
-                      href={`${EXPLORER}/${revealTxHash}`}
+                      href={`${EXPLORER_URL}/${revealTxHash}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       style={{ ...mono, fontSize: "0.68rem", color: "var(--acid)", wordBreak: "break-all", textAlign: "right" }}

@@ -13,8 +13,23 @@ const client = createPublicClient({
   transport: http(rpcUrl, { timeout: 8_000 }),
 });
 
+type LeaderboardPayload = {
+  leaderboard: { addr: string; score: string; puzzlesSolved: string }[];
+  playerCount: string;
+  season: { name: string; isActive: boolean; prizeWei: string };
+};
+
+let cached: { data: LeaderboardPayload; ts: number } | null = null;
+const CACHE_MS = 30_000;
+
 export async function GET() {
   try {
+    if (cached && Date.now() - cached.ts < CACHE_MS) {
+      return NextResponse.json(cached.data, {
+        headers: { "Cache-Control": "public, s-maxage=30, stale-while-revalidate=60" },
+      });
+    }
+
     const [rawLb, rawCount, rawSeason] = await Promise.all([
       client.readContract({
         address: CONTRACT_ADDRESSES.playerRegistry,
@@ -42,7 +57,7 @@ export async function GET() {
       string, bigint, boolean, bigint, `0x${string}`
     ];
 
-    return NextResponse.json({
+    const payload: LeaderboardPayload = {
       leaderboard: addrs.map((addr, i) => ({
         addr,
         score: (scores[i] ?? 0n).toString(),
@@ -50,7 +65,11 @@ export async function GET() {
       })),
       playerCount: (rawCount as bigint).toString(),
       season: { name: seasonName, isActive, prizeWei: prizeWei.toString() },
-    }, {
+    };
+
+    cached = { data: payload, ts: Date.now() };
+
+    return NextResponse.json(payload, {
       headers: { "Cache-Control": "public, s-maxage=30, stale-while-revalidate=60" },
     });
   } catch {
