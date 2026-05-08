@@ -420,16 +420,10 @@ export default function PlayPage() {
           maxWidth: "1280px",
           margin: "0 auto",
           padding: "32px 24px",
-          display: "grid",
-          gap: "24px",
         }}
       >
         <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr",
-            gap: "20px",
-          }}
+          style={{ display: "grid", gap: "20px" }}
           className="lg:grid-cols-[1fr_1.3fr]"
         >
           {/* ── LEFT — CASE BRIEF ─────────────────────────────── */}
@@ -595,7 +589,7 @@ export default function PlayPage() {
           </aside>
 
           {/* ── RIGHT — INTERROGATION CONSOLE ─────────────────── */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "12px", isolation: "isolate" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
 
             {/* Success banner */}
             {isRevealSuccess && (
