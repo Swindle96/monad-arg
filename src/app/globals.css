@@ -361,6 +361,13 @@ body {
 }
 .skip-link:focus { top: 8px; }
 
+/* ── HOVER UTILITIES (Server Component safe) ── */
+.step-card { background: var(--bg); transition: background 200ms; }
+.step-card:hover { background: var(--surface); }
+
+.footer-link { color: var(--text-faint); transition: color 150ms; }
+.footer-link:hover { color: var(--text); }
+
 /* ── REDUCED MOTION ────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

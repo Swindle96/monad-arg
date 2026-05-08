@@ -234,14 +234,11 @@ export default function Home() {
           {STEPS.map(({ num, title, desc }) => (
             <div
               key={num}
+              className="step-card"
               style={{
-                background: "var(--bg)",
                 padding: "32px 28px",
                 position: "relative",
-                transition: "background 200ms",
               }}
-              onMouseEnter={e => (e.currentTarget.style.background = "var(--surface)")}
-              onMouseLeave={e => (e.currentTarget.style.background = "var(--bg)")}
             >
               <span
                 style={{
@@ -350,16 +347,13 @@ export default function Home() {
             <Link
               key={href}
               href={href}
+              className="footer-link"
               style={{
                 fontFamily: "var(--font-mono), monospace",
                 fontSize: "0.65rem",
                 letterSpacing: "0.18em",
-                color: "var(--text-faint)",
                 textDecoration: "none",
-                transition: "color 150ms",
               }}
-              onMouseEnter={e => (e.currentTarget.style.color = "var(--text)")}
-              onMouseLeave={e => (e.currentTarget.style.color = "var(--text-faint)")}
             >
               {label}
             </Link>
