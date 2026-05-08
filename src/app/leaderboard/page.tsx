@@ -14,274 +14,136 @@ interface LbApiResponse {
   season: { name: string; isActive: boolean; prizeWei: string };
 }
 
-const RANKS: Record<number, { color: string; bg: string; border: string; label: string; glow: string; title: string }> = {
-  1: { color: "var(--amber)",    bg: "rgba(212,165,116,0.07)", border: "rgba(212,165,116,0.35)", label: "1ST", glow: "rgba(212,165,116,0.28)", title: "CHIEF DETECTIVE" },
-  2: { color: "var(--mono-pale)", bg: "rgba(221,215,254,0.05)", border: "rgba(221,215,254,0.28)", label: "2ND", glow: "rgba(221,215,254,0.18)", title: "SENIOR AGENT" },
-  3: { color: "var(--cyan)",     bg: "rgba(133,230,255,0.05)", border: "rgba(133,230,255,0.28)", label: "3RD", glow: "rgba(133,230,255,0.18)", title: "FIELD DETECTIVE" },
-};
-
-const mono: React.CSSProperties = { fontFamily: "var(--font-roboto-mono)" };
+const mono: React.CSSProperties = { fontFamily: "var(--font-mono), monospace" };
 
 function shorten(addr: string) { return `${addr.slice(0, 8)}…${addr.slice(-6)}`; }
 
-/* ── CopyButton ─────────────────────────────────────────────────── */
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
   function handle(e: React.MouseEvent) {
     e.preventDefault();
     navigator.clipboard.writeText(text)
       .then(() => { setCopied(true); setTimeout(() => setCopied(false), 1500); })
-      .catch(() => { setCopied(false); });
+      .catch(() => {});
   }
   return (
     <button
       onClick={handle}
-      className="p-1 min-h-[44px] min-w-[44px] flex items-center justify-center transition-colors duration-200 cursor-pointer"
-      style={{ color: "var(--ink-low)" }}
       aria-label={copied ? "Address copied" : "Copy address"}
       aria-live="polite"
-      onMouseEnter={e => (e.currentTarget.style.color = "var(--amber)")}
-      onMouseLeave={e => (e.currentTarget.style.color = "var(--ink-low)")}
+      style={{
+        background: "none",
+        border: "none",
+        padding: "6px",
+        cursor: "pointer",
+        color: copied ? "var(--acid)" : "var(--text-faint)",
+        transition: "color 150ms",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        minWidth: "32px",
+        minHeight: "32px",
+      }}
+      onMouseEnter={e => { if (!copied) e.currentTarget.style.color = "var(--text-dim)"; }}
+      onMouseLeave={e => { if (!copied) e.currentTarget.style.color = "var(--text-faint)"; }}
     >
       {copied ? (
         <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-          <path d="M2 6L5 9L10 3" stroke="var(--amber)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M2 6L5 9L10 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       ) : (
         <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-          <rect x="4" y="1" width="7" height="8" rx="1" stroke="currentColor" strokeWidth="1" />
-          <rect x="1" y="3" width="7" height="8" rx="1" stroke="currentColor" strokeWidth="1" />
+          <rect x="4" y="1" width="7" height="8" rx="0.5" stroke="currentColor" strokeWidth="1" />
+          <rect x="1" y="3" width="7" height="8" rx="0.5" stroke="currentColor" strokeWidth="1" />
         </svg>
       )}
     </button>
   );
 }
 
-/* ── SkeletonRow ────────────────────────────────────────────────── */
 function SkeletonRow() {
   return (
-    <div className="flex items-center gap-4 px-5 py-3" style={{ borderBottom: "1px solid rgba(212,165,116,0.06)" }}>
-      <div className="w-8 h-5 rounded animate-pulse" style={{ background: "rgba(212,165,116,0.06)" }} />
-      <div className="flex-1 h-4 rounded animate-pulse" style={{ background: "rgba(212,165,116,0.04)" }} />
-      <div className="w-16 h-4 rounded animate-pulse" style={{ background: "rgba(212,165,116,0.04)" }} />
-      <div className="w-14 h-4 rounded animate-pulse" style={{ background: "rgba(212,165,116,0.04)" }} />
+    <div style={{ display: "flex", alignItems: "center", gap: "16px", padding: "16px 24px", borderBottom: "1px solid var(--border)" }}>
+      <div style={{ width: "32px", height: "14px", background: "var(--surface)", borderRadius: "2px" }} className="animate-pulse" />
+      <div style={{ flex: 1, height: "14px", background: "var(--surface)", borderRadius: "2px" }} className="animate-pulse" />
+      <div style={{ width: "60px", height: "14px", background: "var(--surface)", borderRadius: "2px" }} className="animate-pulse" />
     </div>
   );
 }
 
-/* ── EvidenceVault (prize pool hero) ────────────────────────────── */
-function EvidenceVault({ loading, seasonName, prizeDisplay, isActive, playerCount, playerCountLoading }: {
-  loading: boolean;
-  seasonName: string;
-  prizeDisplay: string;
-  isActive: boolean;
-  playerCount: bigint | undefined;
-  playerCountLoading: boolean;
-}) {
+const RANK_STYLES: Record<number, { accent: string; label: string; title: string }> = {
+  1: { accent: "#FFD700", label: "1ST", title: "CHIEF DETECTIVE" },
+  2: { accent: "#C0C0C0", label: "2ND", title: "SENIOR AGENT" },
+  3: { accent: "#CD7F32", label: "3RD", title: "FIELD DETECTIVE" },
+};
+
+function PodiumCard({ entry, rank }: { entry: Entry; rank: number }) {
+  const { addr, score, puzzlesSolved } = entry;
+  const r = RANK_STYLES[rank];
   return (
-    <div className="p-evidence relative overflow-hidden mb-3" style={{ backdropFilter: "blur(20px)" }}>
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{ background: "radial-gradient(ellipse 70% 60% at 50% 0%, rgba(212,165,116,0.07) 0%, transparent 70%)" }}
-        aria-hidden="true"
-      />
+    <div
+      style={{
+        background: "var(--surface)",
+        border: `1px solid ${r.accent}33`,
+        padding: "24px",
+        position: "relative",
+        overflow: "hidden",
+        transition: "transform 200ms, box-shadow 200ms",
+      }}
+      onMouseEnter={e => {
+        e.currentTarget.style.transform = "translateY(-3px)";
+        e.currentTarget.style.boxShadow = `0 16px 40px ${r.accent}18`;
+      }}
+      onMouseLeave={e => {
+        e.currentTarget.style.transform = "translateY(0)";
+        e.currentTarget.style.boxShadow = "none";
+      }}
+    >
+      {/* Top accent line */}
+      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "2px", background: r.accent }} aria-hidden="true" />
 
-      {loading ? (
-        <div className="p-6 flex items-center justify-between gap-6">
-          <div className="flex flex-col gap-2">
-            <div className="h-3 w-32 rounded animate-pulse" style={{ background: "rgba(212,165,116,0.08)" }} />
-            <div className="h-10 w-56 rounded animate-pulse" style={{ background: "rgba(212,165,116,0.06)" }} />
-          </div>
-        </div>
-      ) : (
-        <div className="relative p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-          <div>
-            <p className="label-case" style={{ marginBottom: "10px", color: "rgba(212,165,116,0.6)" }}>
-              {seasonName} · Evidence Vault
-            </p>
-            <p
-              className="shimmer"
-              style={{
-                fontFamily: "var(--font-syne)",
-                fontWeight: 800,
-                fontSize: "clamp(2rem, 6vw, 3rem)",
-                letterSpacing: "0.06em",
-              }}
-            >
-              {prizeDisplay}
-            </p>
-          </div>
-          <div className="flex sm:flex-col items-center sm:items-end gap-4 sm:gap-3">
-            <span
-              className="flex items-center gap-2"
-              style={{ ...mono, fontSize: "0.72rem", letterSpacing: "0.16em", color: isActive ? "var(--amber)" : "var(--ink-low)" }}
-            >
-              <span
-                className={isActive ? "dot dot-amber" : "dot"}
-                style={{
-                  width: "8px",
-                  height: "8px",
-                  background: isActive ? undefined : "var(--ink-low)",
-                }}
-                aria-hidden="true"
-              />
-              {isActive ? "CASE ACTIVE" : "CASE CLOSED"}
-            </span>
-            {playerCount !== undefined && !playerCountLoading && (
-              <span className="label-mono">
-                {playerCount.toString()} AGENT{playerCount === 1n ? "" : "S"}
-              </span>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* ── PodiumSection ──────────────────────────────────────────────── */
-function PodiumSection({ entries }: { entries: Entry[] }) {
-  return (
-    <div className="grid gap-3 sm:grid-cols-3 mb-4">
-      {entries.map(({ addr, score, puzzlesSolved }, idx) => {
-        const rank = idx + 1;
-        const r    = RANKS[rank];
-        return (
-          <div
-            key={addr}
-            className="relative overflow-hidden"
-            style={{
-              background:   r.bg,
-              border:       `1px solid ${r.border}`,
-              boxShadow:    `0 0 30px ${r.glow}, 0 20px 60px rgba(0,0,0,0.4)`,
-              padding:      "20px",
-            }}
-          >
-            <div className="absolute top-0 left-0 right-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${r.color}, transparent)` }} aria-hidden="true" />
-            <div className="absolute inset-0 pointer-events-none" style={{ background: `radial-gradient(ellipse 80% 50% at 50% 0%, ${r.glow} 0%, transparent 70%)` }} aria-hidden="true" />
-
-            <div className="relative">
-              <div className="flex items-center justify-between mb-4">
-                <span
-                  style={{
-                    color:            r.color,
-                    fontFamily:       "var(--font-syne)",
-                    fontSize:         "1rem",
-                    fontWeight:       800,
-                    width:            "36px",
-                    height:           "36px",
-                    display:          "flex",
-                    alignItems:       "center",
-                    justifyContent:   "center",
-                    border:           `1px solid ${r.border}`,
-                    boxShadow:        `0 0 12px ${r.glow}`,
-                  }}
-                >
-                  {rank}
-                </span>
-                <span
-                  style={{
-                    fontFamily:    "var(--font-special-elite), monospace",
-                    fontSize:      "0.60rem",
-                    letterSpacing: "0.18em",
-                    color:         r.color,
-                    textTransform: "uppercase",
-                    opacity:       0.9,
-                  }}
-                >
-                  {r.title}
-                </span>
-              </div>
-
-              <div className="flex items-center gap-1 mb-4">
-                <span style={{ color: r.color, fontFamily: "var(--font-roboto-mono)", fontSize: "0.82rem", fontWeight: 600 }}>
-                  {shorten(addr)}
-                </span>
-                <CopyButton text={addr} />
-              </div>
-
-              <div className="grid grid-cols-2 gap-2 pt-3" style={{ borderTop: `1px solid ${r.border}` }}>
-                <div>
-                  <p className="label-mono" style={{ marginBottom: "3px" }}>SOLVED</p>
-                  <p style={{ fontFamily: "var(--font-syne)", fontWeight: 700, fontSize: "1.1rem", color: "var(--ink)" }}>
-                    {Number(puzzlesSolved)}
-                  </p>
-                </div>
-                <div>
-                  <p className="label-mono" style={{ marginBottom: "3px" }}>SCORE</p>
-                  <p className="tabular-nums" style={{ fontFamily: "var(--font-syne)", fontWeight: 700, fontSize: "1.1rem", color: r.color }}>
-                    {Number(score).toLocaleString()}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-/* ── RankingsTable ──────────────────────────────────────────────── */
-function RankingsTable({ entries }: { entries: Entry[] }) {
-  return (
-    <div className="p-panel">
-      <div
-        className="hidden sm:grid px-5 py-2"
-        style={{
-          gridTemplateColumns: "52px 1fr 100px 90px 48px",
-          gap: "16px",
-          borderBottom: "1px solid rgba(212,165,116,0.10)",
-          background: "rgba(212,165,116,0.025)",
-        }}
-      >
-        {["RANK", "ADDRESS", "CASES", "SCORE", ""].map(h => (
-          <span key={h} className="label-mono">{h}</span>
-        ))}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px" }}>
+        <span
+          style={{
+            fontFamily: "var(--font-display), sans-serif",
+            fontWeight: 700,
+            fontSize: "1.4rem",
+            color: r.accent,
+            lineHeight: 1,
+          }}
+        >
+          {rank}
+        </span>
+        <span style={{ ...mono, fontSize: "0.58rem", letterSpacing: "0.16em", color: r.accent, opacity: 0.8 }}>
+          {r.title}
+        </span>
       </div>
 
-      {entries.map(({ addr, score, puzzlesSolved }, idx) => {
-        const rank = idx + 4;
-        return (
-          <div
-            key={addr}
-            className="transition-colors duration-150"
-            style={{ borderBottom: "1px solid rgba(212,165,116,0.06)" }}
-            onMouseEnter={e => (e.currentTarget.style.background = "rgba(212,165,116,0.03)")}
-            onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
-          >
-            {/* Desktop */}
-            <div className="hidden sm:grid px-5 py-3 items-center" style={{ gridTemplateColumns: "52px 1fr 100px 90px 48px", gap: "16px" }}>
-              <span style={{ ...mono, fontSize: "0.72rem", color: "var(--ink-low)", width: 32, display: "block", textAlign: "center" }}>{rank}</span>
-              <span className="truncate" style={{ fontFamily: "var(--font-roboto-mono)", fontSize: "0.875rem", color: "var(--ink-mid)" }}>{shorten(addr)}</span>
-              <div className="flex items-center gap-1.5">
-                <span className="tabular-nums" style={{ fontFamily: "var(--font-syne)", fontWeight: 700, fontSize: "0.9rem", color: "var(--ink)" }}>{Number(puzzlesSolved)}</span>
-                <span className="label-mono">solved</span>
-              </div>
-              <span className="tabular-nums font-bold" style={{ fontFamily: "var(--font-syne)", fontSize: "0.9rem", color: "var(--amber)" }}>{Number(score).toLocaleString()}</span>
-              <CopyButton text={addr} />
-            </div>
+      <div style={{ display: "flex", alignItems: "center", gap: "4px", marginBottom: "16px" }}>
+        <span style={{ ...mono, fontSize: "0.82rem", color: "var(--text-dim)" }}>
+          {shorten(addr)}
+        </span>
+        <CopyButton text={addr} />
+      </div>
 
-            {/* Mobile */}
-            <div className="sm:hidden px-4 py-3 flex items-center gap-3">
-              <span style={{ ...mono, fontSize: "0.72rem", color: "var(--ink-low)", width: 28, flexShrink: 0, textAlign: "center" }}>{rank}</span>
-              <div className="flex-1 min-w-0">
-                <span className="block truncate" style={{ color: "var(--ink-mid)", fontFamily: "var(--font-roboto-mono)", fontSize: "0.82rem" }}>{shorten(addr)}</span>
-                <div className="flex items-center gap-3 mt-1 label-mono">
-                  <span>{Number(puzzlesSolved)} solved</span>
-                  <span style={{ color: "var(--amber)" }}>{Number(score).toLocaleString()} pts</span>
-                </div>
-              </div>
-              <CopyButton text={addr} />
-            </div>
-          </div>
-        );
-      })}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", paddingTop: "16px", borderTop: `1px solid ${r.accent}22` }}>
+        <div>
+          <p className="label" style={{ marginBottom: "4px" }}>SOLVED</p>
+          <p style={{ fontFamily: "var(--font-display), sans-serif", fontWeight: 700, fontSize: "1.3rem", color: "var(--text)" }}>
+            {Number(puzzlesSolved)}
+          </p>
+        </div>
+        <div>
+          <p className="label" style={{ marginBottom: "4px" }}>SCORE</p>
+          <p className="tabular-nums" style={{ fontFamily: "var(--font-display), sans-serif", fontWeight: 700, fontSize: "1.3rem", color: r.accent }}>
+            {Number(score).toLocaleString()}
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
 
-/* ── LeaderboardPage ────────────────────────────────────────────── */
 export default function LeaderboardPage() {
   const [data, setData]       = useState<LbApiResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -289,7 +151,6 @@ export default function LeaderboardPage() {
 
   useEffect(() => {
     let mounted = true;
-
     async function load() {
       try {
         const res = await fetch("/api/leaderboard");
@@ -302,7 +163,6 @@ export default function LeaderboardPage() {
         if (mounted) setLoading(false);
       }
     }
-
     load();
     const id = setInterval(load, 30_000);
     return () => { mounted = false; clearInterval(id); };
@@ -312,8 +172,8 @@ export default function LeaderboardPage() {
     if (!data) return null;
     return data.leaderboard
       .map(e => ({
-        addr:         e.addr as `0x${string}`,
-        score:        BigInt(e.score),
+        addr:          e.addr as `0x${string}`,
+        score:         BigInt(e.score),
         puzzlesSolved: BigInt(e.puzzlesSolved),
       }))
       .filter(e => e.addr.toLowerCase() !== ZERO_ADDR && e.score > 0n);
@@ -329,72 +189,200 @@ export default function LeaderboardPage() {
   const tableEntries  = leaderboard?.slice(3)    ?? [];
 
   return (
-    <div className="min-h-screen px-4 sm:px-6 py-8">
-      <div className="mx-auto max-w-4xl">
+    <div style={{ minHeight: "100vh", padding: "0 24px", maxWidth: "1280px", margin: "0 auto" }}>
 
-        {/* Back link */}
-        <div className="mb-8">
-          <Link
-            href="/"
-            className="inline-flex items-center min-h-[44px] transition-colors"
-            style={{ ...mono, fontSize: "0.72rem", letterSpacing: "0.18em", color: "var(--ink-low)" }}
-            onMouseEnter={e => (e.currentTarget.style.color = "var(--amber)")}
-            onMouseLeave={e => (e.currentTarget.style.color = "var(--ink-low)")}
-          >
-            ← BACK
-          </Link>
-        </div>
+      {/* Back */}
+      <div style={{ paddingTop: "32px", marginBottom: "32px" }}>
+        <Link
+          href="/"
+          style={{ ...mono, fontSize: "0.68rem", letterSpacing: "0.16em", color: "var(--text-faint)", textDecoration: "none", transition: "color 150ms" }}
+          onMouseEnter={e => (e.currentTarget.style.color = "var(--text)")}
+          onMouseLeave={e => (e.currentTarget.style.color = "var(--text-faint)")}
+        >
+          ← BACK
+        </Link>
+      </div>
 
-        <EvidenceVault
-          loading={loading}
-          seasonName={seasonName}
-          prizeDisplay={prizeDisplay}
-          isActive={isActive}
-          playerCount={playerCount}
-          playerCountLoading={loading}
+      {/* Prize hero */}
+      <div
+        style={{
+          background: "var(--surface)",
+          border: "1px solid var(--border-2)",
+          padding: "32px",
+          marginBottom: "48px",
+          display: "flex",
+          flexWrap: "wrap",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: "24px",
+          position: "relative",
+          overflow: "hidden",
+        }}
+      >
+        <div
+          style={{ position: "absolute", top: 0, left: 0, right: 0, height: "1px", background: "linear-gradient(90deg, transparent, var(--purple) 50%, transparent)" }}
+          aria-hidden="true"
         />
-
-        {/* Section header */}
-        <div className="flex items-end justify-between mb-3 mt-10 reveal-up">
-          <div>
-            <p className="label-case" style={{ marginBottom: "8px" }}>Forensic Registry</p>
-            <h1 className="display-3d" style={{ fontSize: "clamp(2rem, 6vw, 2.8rem)" }}>FIELD AGENTS</h1>
-          </div>
-          <p className="label-mono">
-            {loading ? "—" : playerCount !== undefined ? `${playerCount} AGENT${playerCount === 1n ? "" : "S"}` : "—"}
+        <div>
+          <p className="label-purple" style={{ marginBottom: "10px" }}>{seasonName} · PRIZE POOL</p>
+          <p
+            style={{
+              fontFamily: "var(--font-display), sans-serif",
+              fontWeight: 700,
+              fontSize: "clamp(2rem, 5vw, 3rem)",
+              color: "var(--text)",
+              letterSpacing: "-0.02em",
+            }}
+          >
+            {loading ? "—" : prizeDisplay}
           </p>
         </div>
-
-        <div className="wire-amber mb-6" />
-
-        {isError ? (
-          <div className="p-panel px-5 py-16 text-center">
-            <p className="label-mono" style={{ color: "var(--crimson)", marginBottom: 8, letterSpacing: "0.22em" }}>SIGNAL LOST</p>
-            <p className="label-mono">Could not reach contract — check RPC connection.</p>
+        <div style={{ display: "flex", flexDirection: "column", gap: "10px", alignItems: "flex-end" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <span
+              className={isActive ? "dot dot-green" : "dot"}
+              style={{ width: "7px", height: "7px", background: isActive ? undefined : "var(--text-faint)" }}
+              aria-hidden="true"
+            />
+            <span style={{ ...mono, fontSize: "0.68rem", letterSpacing: "0.14em", color: isActive ? "var(--green)" : "var(--text-dim)" }}>
+              {isActive ? "CASE ACTIVE" : "CASE CLOSED"}
+            </span>
           </div>
-        ) : (loading || leaderboard === null) ? (
-          <div className="p-panel">
-            {Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} />)}
-          </div>
-        ) : leaderboard.length === 0 ? (
-          <div className="p-panel px-5 py-16 text-center">
-            <p className="label-mono" style={{ letterSpacing: "0.22em", marginBottom: 8 }}>NO AGENTS ON FILE</p>
-            <p className="label-case" style={{ color: "var(--ink-low)", marginBottom: 28 }}>
-              Be the first detective to crack a case
-            </p>
-            <Link href="/play" className="btn inline-flex px-6">OPEN CASE FILE</Link>
-          </div>
-        ) : (
-          <>
-            {podiumEntries.length > 0 && <PodiumSection entries={podiumEntries} />}
-            {tableEntries.length > 0  && <RankingsTable entries={tableEntries} />}
-          </>
-        )}
-
-        <p className="mt-8 text-center label-mono">
-          LIVE ON-CHAIN · {isError ? "—" : seasonName.toUpperCase()} · MONAD TESTNET · REFRESHES EVERY 30S
-        </p>
+          {playerCount !== undefined && !loading && (
+            <span className="label">
+              {playerCount.toString()} AGENT{playerCount === 1n ? "" : "S"} ON FILE
+            </span>
+          )}
+        </div>
       </div>
+
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: "24px", flexWrap: "wrap", gap: "12px" }}>
+        <div>
+          <p className="label-purple" style={{ marginBottom: "8px" }}>FORENSIC REGISTRY</p>
+          <h1
+            className="display"
+            style={{ fontSize: "clamp(2rem, 5vw, 3rem)" }}
+          >
+            FIELD AGENTS
+          </h1>
+        </div>
+        <span className="label">
+          {loading ? "—" : playerCount !== undefined ? `${playerCount} TOTAL` : "—"}
+        </span>
+      </div>
+
+      <div className="divider" style={{ marginBottom: "32px" }} />
+
+      {/* Content */}
+      {isError ? (
+        <div style={{ background: "var(--surface)", border: "1px solid rgba(255,59,48,0.25)", padding: "64px 24px", textAlign: "center" }}>
+          <p style={{ ...mono, fontSize: "0.72rem", letterSpacing: "0.22em", color: "var(--red)", marginBottom: "8px" }}>RPC CONNECTION FAILED</p>
+          <p className="label">Could not reach contract — try again shortly.</p>
+        </div>
+      ) : loading || leaderboard === null ? (
+        <div style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+          {Array.from({ length: 6 }).map((_, i) => <SkeletonRow key={i} />)}
+        </div>
+      ) : leaderboard.length === 0 ? (
+        <div style={{ background: "var(--surface)", border: "1px solid var(--border)", padding: "80px 24px", textAlign: "center" }}>
+          <p style={{ ...mono, fontSize: "0.72rem", letterSpacing: "0.22em", color: "var(--text-dim)", marginBottom: "8px" }}>NO AGENTS ON FILE</p>
+          <p className="label" style={{ marginBottom: "32px" }}>Be the first detective to crack a case.</p>
+          <Link href="/play" className="btn">OPEN CASE FILE</Link>
+        </div>
+      ) : (
+        <>
+          {/* Podium */}
+          {podiumEntries.length > 0 && (
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                gap: "1px",
+                background: "var(--border)",
+                border: "1px solid var(--border)",
+                marginBottom: "1px",
+              }}
+            >
+              {podiumEntries.map((entry, i) => (
+                <PodiumCard key={entry.addr} entry={entry} rank={i + 1} />
+              ))}
+            </div>
+          )}
+
+          {/* Table */}
+          {tableEntries.length > 0 && (
+            <div style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+              {/* Header */}
+              <div
+                className="hidden sm:grid"
+                style={{
+                  gridTemplateColumns: "48px 1fr 100px 90px 40px",
+                  gap: "16px",
+                  padding: "10px 24px",
+                  borderBottom: "1px solid var(--border-2)",
+                  background: "var(--raised)",
+                }}
+              >
+                {["RANK", "ADDRESS", "CASES", "SCORE", ""].map(h => (
+                  <span key={h} className="label">{h}</span>
+                ))}
+              </div>
+
+              {tableEntries.map(({ addr, score, puzzlesSolved }, idx) => {
+                const rank = idx + 4;
+                return (
+                  <div
+                    key={addr}
+                    style={{ borderBottom: "1px solid var(--border)", transition: "background 150ms" }}
+                    onMouseEnter={e => (e.currentTarget.style.background = "var(--raised)")}
+                    onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+                  >
+                    {/* Desktop */}
+                    <div
+                      className="hidden sm:grid"
+                      style={{ gridTemplateColumns: "48px 1fr 100px 90px 40px", gap: "16px", padding: "14px 24px", alignItems: "center" }}
+                    >
+                      <span style={{ ...mono, fontSize: "0.72rem", color: "var(--text-faint)", textAlign: "center" }}>{rank}</span>
+                      <span style={{ ...mono, fontSize: "0.85rem", color: "var(--text-dim)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {shorten(addr)}
+                      </span>
+                      <span className="tabular-nums" style={{ fontFamily: "var(--font-display), sans-serif", fontWeight: 600, fontSize: "0.9rem", color: "var(--text)" }}>
+                        {Number(puzzlesSolved)}
+                      </span>
+                      <span className="tabular-nums" style={{ fontFamily: "var(--font-display), sans-serif", fontWeight: 600, fontSize: "0.9rem", color: "var(--purple)" }}>
+                        {Number(score).toLocaleString()}
+                      </span>
+                      <CopyButton text={addr} />
+                    </div>
+
+                    {/* Mobile */}
+                    <div className="sm:hidden" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "14px 16px" }}>
+                      <span style={{ ...mono, fontSize: "0.68rem", color: "var(--text-faint)", width: "24px", textAlign: "center", flexShrink: 0 }}>{rank}</span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <span style={{ display: "block", ...mono, fontSize: "0.82rem", color: "var(--text-dim)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {shorten(addr)}
+                        </span>
+                        <div style={{ display: "flex", gap: "12px", marginTop: "4px" }}>
+                          <span className="label">{Number(puzzlesSolved)} solved</span>
+                          <span style={{ ...mono, fontSize: "0.62rem", letterSpacing: "0.12em", color: "var(--purple)" }}>
+                            {Number(score).toLocaleString()} pts
+                          </span>
+                        </div>
+                      </div>
+                      <CopyButton text={addr} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </>
+      )}
+
+      <p className="label" style={{ textAlign: "center", marginTop: "32px", paddingBottom: "48px" }}>
+        LIVE ON-CHAIN · {isError ? "—" : seasonName.toUpperCase()} · MONAD TESTNET · REFRESHES EVERY 30S
+      </p>
     </div>
   );
 }

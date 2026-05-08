@@ -1,14 +1,14 @@
 import type { Metadata } from "next";
-import { Inter, Roboto_Mono, Syne, Special_Elite } from "next/font/google";
+import { Inter, Roboto_Mono, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import Providers from "./providers";
 import Navbar from "@/components/Navbar";
 import ErrorBoundary from "@/components/ErrorBoundary";
 
-const syne = Syne({
-  weight: ["400", "500", "600", "700", "800"],
+const spaceGrotesk = Space_Grotesk({
+  weight: ["400", "500", "600", "700"],
   subsets: ["latin"],
-  variable: "--font-syne",
+  variable: "--font-display",
   display: "swap",
 });
 
@@ -22,14 +22,7 @@ const inter = Inter({
 const robotoMono = Roboto_Mono({
   weight: ["400", "500", "700"],
   subsets: ["latin"],
-  variable: "--font-roboto-mono",
-  display: "swap",
-});
-
-const specialElite = Special_Elite({
-  weight: ["400"],
-  subsets: ["latin"],
-  variable: "--font-special-elite",
+  variable: "--font-mono",
   display: "swap",
 });
 
@@ -64,28 +57,16 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className="precinct-scanlines">
-      <body
-        className={`${syne.variable} ${inter.variable} ${robotoMono.variable} ${specialElite.variable}`}
-      >
-        {/* Fixed atmospheric layers */}
-        <div className="precinct-bg"    aria-hidden="true" />
-        <div className="precinct-grid"  aria-hidden="true" />
-        <div className="precinct-lines" aria-hidden="true" />
-        <div className="precinct-grain" aria-hidden="true" />
-
+    <html lang="en">
+      <body className={`${spaceGrotesk.variable} ${inter.variable} ${robotoMono.variable}`}>
+        <div className="grain" aria-hidden="true" />
         <a href="#main-content" className="skip-link">Skip to content</a>
-
         <Providers>
           <ErrorBoundary>
             <Navbar />
-            <main id="main-content">
-              {children}
-            </main>
+            <main id="main-content">{children}</main>
           </ErrorBoundary>
         </Providers>
       </body>
