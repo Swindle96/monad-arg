@@ -17,174 +17,23 @@ import { ConnectKitButton } from "connectkit";
 import { puzzleChainAbi, CONTRACT_ADDRESSES } from "@/lib/contracts";
 import { getPuzzleMeta, CATEGORY_COLORS } from "@/lib/puzzleData";
 import { monadTestnet } from "@/lib/wagmi";
-import { STORAGE_KEYS, ZERO_ADDR, EXPLORER_URL } from "@/lib/constants";
+import { ZERO_ADDR, EXPLORER_URL } from "@/lib/constants";
+import {
+  FALLBACK_COMMIT_BLOCKS,
+  WALLET_TIMEOUT_MS,
+  type PuzzleData,
+  type CommitRecord,
+  type CommitData,
+  saveCommit,
+  loadCommit,
+  clearCommit,
+  downloadBackup,
+  friendlyError,
+  extractAnswerFormat,
+} from "./_lib";
+import { mono, Spinner, CheckIcon, Confetti, BlockProgress } from "./_ui";
 
-const CONTRACT_ADDRESS       = CONTRACT_ADDRESSES.puzzleChain;
-const FALLBACK_COMMIT_BLOCKS = 10n;
-
-type PuzzleData = {
-  id: bigint;
-  answerHash: `0x${string}`;
-  description: string;
-  solved: boolean;
-  solver: `0x${string}`;
-  solvedAtBlock: bigint;
-};
-
-type CommitRecord = {
-  commitment: `0x${string}`;
-  commitBlock: bigint;
-  puzzleId: bigint;
-  revealed: boolean;
-};
-
-interface CommitData {
-  puzzleId:    string;
-  answerHex:   `0x${string}`;
-  nonce:       `0x${string}`;
-  commitBlock: bigint;
-}
-
-const WALLET_TIMEOUT_MS = 120_000;
-
-function saveCommit(d: CommitData) {
-  try {
-    sessionStorage.setItem(STORAGE_KEYS.COMMIT, JSON.stringify({ ...d, commitBlock: d.commitBlock.toString() }));
-  } catch (e) {
-    console.warn("[saveCommit] sessionStorage write failed:", e);
-  }
-}
-function loadCommit(): CommitData | null {
-  try {
-    const raw = sessionStorage.getItem(STORAGE_KEYS.COMMIT);
-    if (!raw) return null;
-    const p = JSON.parse(raw);
-    if (!p || typeof p.puzzleId !== "string" || typeof p.answerHex !== "string" ||
-        typeof p.nonce !== "string" || p.commitBlock == null) return null;
-    return {
-      puzzleId:    p.puzzleId,
-      answerHex:   p.answerHex as `0x${string}`,
-      nonce:       p.nonce as `0x${string}`,
-      commitBlock: BigInt(p.commitBlock),
-    };
-  } catch (err) {
-    console.warn("[loadCommit] Failed to parse stored commit:", err);
-    return null;
-  }
-}
-function clearCommit() { sessionStorage.removeItem(STORAGE_KEYS.COMMIT); }
-
-function downloadBackup(d: CommitData) {
-  const json = JSON.stringify({ ...d, commitBlock: d.commitBlock.toString() }, null, 2);
-  const blob = new Blob([json], { type: "application/json" });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement("a");
-  a.href     = url;
-  a.download = `chain-detective-commit-${d.puzzleId}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-function friendlyError(msg: string, commitBlocks = FALLBACK_COMMIT_BLOCKS): string {
-  if (msg.includes("WrongAnswer"))           return "Incorrect answer. Try again.";
-  if (msg.includes("AlreadySolved"))         return "This puzzle has already been solved.";
-  if (msg.includes("AlreadySolvedByPlayer")) return "You have already solved this puzzle.";
-  if (msg.includes("NoPuzzleAvailable"))     return "No active puzzle at the moment.";
-  if (msg.includes("TooEarlyToReveal"))      return `Wait ${commitBlocks} more blocks before revealing.`;
-  if (msg.includes("NoCommitFound"))         return "No commitment found — commit your answer first.";
-  if (msg.includes("AlreadyRevealed"))       return "You already revealed this commitment.";
-  if (msg.includes("CommitForWrongPuzzle"))  return "Your commitment was for a different puzzle.";
-  if (msg.includes("InvalidCommitment"))     return "Commitment doesn't match — re-commit your answer.";
-  if (msg.includes("User rejected"))         return "Transaction cancelled.";
-  if (msg.includes("insufficient funds"))    return "Not enough MON for gas.";
-  return msg.split("\n")[0].slice(0, 120);
-}
-
-function Spinner() {
-  return (
-    <span
-      style={{
-        display: "inline-block",
-        width: "14px",
-        height: "14px",
-        borderRadius: "50%",
-        border: "2px solid var(--border-2)",
-        borderTopColor: "var(--purple)",
-        animation: "spin-slow 0.7s linear infinite",
-        flexShrink: 0,
-      }}
-      aria-label="Loading"
-    />
-  );
-}
-
-function CheckIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true" style={{ display: "inline-block", flexShrink: 0 }}>
-      <path d="M2 7L6 11L12 3" stroke="var(--acid)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-const CONFETTI_PIECES = Array.from({ length: 50 }, (_, i) => ({
-  left:     `${(i * 37 + 11) % 100}%`,
-  delay:    `${((i * 7) % 15) / 10}s`,
-  duration: `${1.2 + ((i * 3) % 10) / 10}s`,
-  color:    ["#9B7FFC", "#C8FF00", "#00CFFF", "#00E87A", "#FF3B30"][i % 5],
-  size:     `${6 + (i % 3) * 3}px`,
-  radius:   i % 3 === 0 ? "50%" : "1px",
-}));
-
-function Confetti() {
-  return (
-    <div className="fixed inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 9000 }} aria-hidden="true">
-      {CONFETTI_PIECES.map((p, i) => (
-        <div key={i} style={{
-          position: "absolute", top: 0, left: p.left,
-          width: p.size, height: p.size,
-          backgroundColor: p.color, borderRadius: p.radius,
-          animation: `confetti-fall ${p.duration} ${p.delay} linear forwards`,
-        }} />
-      ))}
-    </div>
-  );
-}
-
-function extractAnswerFormat(description: string): string | null {
-  const match = description.match(/Answer:\s*(.+?)\.?\s*$/i);
-  return match ? match[1].replace(/\.$/, "").trim() : null;
-}
-
-const mono: React.CSSProperties = { fontFamily: "var(--font-mono), monospace" };
-
-function BlockProgress({ blocksLeft, totalBlocks }: { blocksLeft: bigint; totalBlocks: bigint }) {
-  const done  = Number(totalBlocks - (blocksLeft < 0n ? 0n : blocksLeft));
-  const pct   = Math.min(100, Math.round((done / Number(totalBlocks)) * 100));
-  const ready = blocksLeft <= 0n;
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <span style={{ ...mono, fontSize: "0.68rem", letterSpacing: "0.14em", color: ready ? "var(--acid)" : "var(--text-dim)" }}>
-          {ready ? "SEAL READY TO BREAK" : `HOLD — ${blocksLeft} BLOCK${blocksLeft !== 1n ? "S" : ""} REMAINING`}
-        </span>
-        <span className="tabular-nums" style={{ ...mono, fontSize: "0.64rem", color: "var(--text-faint)" }}>
-          {pct}%
-        </span>
-      </div>
-      <div style={{ height: "2px", width: "100%", overflow: "hidden", background: "var(--border-2)" }}>
-        <div
-          style={{
-            height: "100%",
-            width: `${pct}%`,
-            transition: "width 0.5s ease",
-            background: ready ? "var(--acid)" : "var(--purple)",
-            boxShadow: ready ? "0 0 8px var(--acid)" : "0 0 8px var(--purple-glow)",
-          }}
-        />
-      </div>
-    </div>
-  );
-}
+const CONTRACT_ADDRESS = CONTRACT_ADDRESSES.puzzleChain;
 
 export default function PlayPage() {
   const [answer, setAnswer]            = useState("");

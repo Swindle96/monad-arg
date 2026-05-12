@@ -232,7 +232,7 @@ export default function AnomalyScene({ className = "" }: AnomalySceneProps) {
     if (!mount) return;
 
     try {
-      const isMobile             = /iPhone|iPad|Android/i.test(navigator.userAgent);
+      const isMobile             = window.matchMedia("(max-width: 767px)").matches;
       const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
       /* ── Renderer ────────────────────────────────────────────── */

@@ -8,5 +8,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${BASE}/play`,           lastModified: new Date(), changeFrequency: "hourly", priority: 0.9 },
     { url: `${BASE}/explore`,        lastModified: new Date(), changeFrequency: "always", priority: 0.8 },
     { url: `${BASE}/leaderboard`,    lastModified: new Date(), changeFrequency: "hourly", priority: 0.7 },
+    { url: `${BASE}/privacy`,        lastModified: new Date(), changeFrequency: "yearly", priority: 0.2 },
+    { url: `${BASE}/terms`,          lastModified: new Date(), changeFrequency: "yearly", priority: 0.2 },
   ];
 }
