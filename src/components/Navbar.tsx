@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ConnectKitButton } from "connectkit";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 const NAV_LINKS = [
   { href: "/play",        label: "CASE FILES",   code: "01" },
@@ -14,6 +14,22 @@ const NAV_LINKS = [
 export default function Navbar() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+
+  // Close mobile menu on route change so the overlay doesn't outlive its context.
+  useEffect(() => { setOpen(false); }, [pathname]);
+
+  // Lock body scroll + listen for Escape while the mobile menu is open.
+  useEffect(() => {
+    if (!open) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
 
   return (
     <>
@@ -175,6 +191,9 @@ export default function Navbar() {
       {open && (
         <div
           className="sm:hidden"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Navigation"
           style={{
             position: "fixed",
             inset: 0,

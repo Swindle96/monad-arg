@@ -1,7 +1,7 @@
 import { STORAGE_KEYS } from "@/lib/constants";
 
 export const FALLBACK_COMMIT_BLOCKS = 10n;
-export const WALLET_TIMEOUT_MS = 120_000;
+export const WALLET_TIMEOUT_MS = 180_000;
 
 export type PuzzleData = {
   id: bigint;

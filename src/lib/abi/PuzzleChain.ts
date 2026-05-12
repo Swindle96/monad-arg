@@ -56,6 +56,8 @@ export const puzzleChainAbi = [
   { type: "event", name: "PlayerRegistrySet",     inputs: [{ name: "registry",   type: "address", indexed: true,  internalType: "address" }], anonymous: false },
   { type: "event", name: "PuzzleAdded",           inputs: [{ name: "id",         type: "uint256", indexed: true,  internalType: "uint256" }, { name: "description", type: "string",  indexed: false, internalType: "string"  }], anonymous: false },
   { type: "event", name: "PuzzleSolved",          inputs: [{ name: "id",         type: "uint256", indexed: true,  internalType: "uint256" }, { name: "solver",      type: "address", indexed: true,  internalType: "address" }, { name: "blockNumber", type: "uint256", indexed: false, internalType: "uint256" }], anonymous: false },
+  // HIGH-08: emitted when external playerRegistry call fails — reveal still succeeds
+  { type: "event", name: "RegistrySolveFailed",   inputs: [{ name: "puzzleId",   type: "uint256", indexed: true,  internalType: "uint256" }, { name: "player",      type: "address", indexed: true,  internalType: "address" }, { name: "reason",      type: "bytes",   indexed: false, internalType: "bytes"   }], anonymous: false },
   { type: "error", name: "AlreadyRevealed"      },
   { type: "error", name: "AlreadySolved"         },
   { type: "error", name: "AlreadySolvedByPlayer" },
@@ -68,4 +70,5 @@ export const puzzleChainAbi = [
   { type: "error", name: "PuzzleDoesNotExist"    },
   { type: "error", name: "TooEarlyToReveal"      },
   { type: "error", name: "WrongAnswer"           },
+  { type: "error", name: "ZeroAddress"           },
 ] as const

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import { EXPLORER_URL } from "@/lib/constants";
 
@@ -26,12 +26,14 @@ export default function ExplorePage() {
   const [blockNumber, setBlockNumber] = useState<string | null>(null);
   const [error, setError]           = useState(false);
   const [loading, setLoading]       = useState(true);
+  const mountedRef                  = useRef(true);
 
   const fetchBlock = useCallback(async () => {
     try {
       const res = await fetch("/api/blocks");
       if (!res.ok) throw new Error("fetch failed");
       const data: BlockData = await res.json();
+      if (!mountedRef.current) return;
       setBlockNumber(data.number);
       setError(false);
 
@@ -46,16 +48,20 @@ export default function ExplorePage() {
         });
       }
     } catch {
-      setError(true);
+      if (mountedRef.current) setError(true);
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
   }, []);
 
   useEffect(() => {
+    mountedRef.current = true;
     fetchBlock();
     const id = setInterval(fetchBlock, POLL_MS);
-    return () => clearInterval(id);
+    return () => {
+      mountedRef.current = false;
+      clearInterval(id);
+    };
   }, [fetchBlock]);
 
   const gameCount = feed.filter(e => e.isGame).length;

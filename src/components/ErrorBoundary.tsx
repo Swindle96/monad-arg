@@ -1,6 +1,7 @@
 "use client";
 
 import { Component, ReactNode } from "react";
+import { STORAGE_KEYS } from "@/lib/constants";
 
 interface Props {
   children: ReactNode;
@@ -9,16 +10,15 @@ interface Props {
 }
 interface State { hasError: boolean; errorMessage: string }
 
-const ERROR_LOG_KEY = "chain_detective_error_log";
 const MAX_LOG_ENTRIES = 20;
 
 function persistError(error: Error, stack: string | null | undefined) {
   try {
-    const raw = localStorage.getItem(ERROR_LOG_KEY);
+    const raw = localStorage.getItem(STORAGE_KEYS.ERROR_LOG);
     const log: unknown[] = raw ? JSON.parse(raw) : [];
     log.push({ ts: new Date().toISOString(), message: error.message, stack });
     if (log.length > MAX_LOG_ENTRIES) log.splice(0, log.length - MAX_LOG_ENTRIES);
-    localStorage.setItem(ERROR_LOG_KEY, JSON.stringify(log));
+    localStorage.setItem(STORAGE_KEYS.ERROR_LOG, JSON.stringify(log));
   } catch { /* storage unavailable */ }
 }
 

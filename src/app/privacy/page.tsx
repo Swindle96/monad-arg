@@ -1,5 +1,3 @@
-"use client";
-
 const LAST_UPDATED = "2026-05-12";
 
 export default function PrivacyPage() {

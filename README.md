@@ -12,7 +12,7 @@
 
 [![Live](https://img.shields.io/badge/▶%20PLAY%20NOW-monad--arg.vercel.app-6E54FF?style=for-the-badge&logo=vercel&logoColor=white)](https://monad-arg.vercel.app)
 [![Network](https://img.shields.io/badge/Monad_Testnet-Chain_10143-836EF9?style=for-the-badge)](https://monad.xyz)
-[![Next.js](https://img.shields.io/badge/Next.js_15-000000?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org)
+[![Next.js](https://img.shields.io/badge/Next.js_14-000000?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://typescriptlang.org)
 [![Solidity](https://img.shields.io/badge/Solidity_0.8.20-363636?style=for-the-badge&logo=solidity&logoColor=white)](https://soliditylang.org)
 
@@ -214,9 +214,11 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 # Start dev server
 npm run dev
 
-# Run e2e tests
-npx playwright install
-npm run test:e2e
+# Type-check
+npm run type-check
+
+# Run e2e tests (first time only: npx playwright install)
+npm test
 ```
 
 ---
@@ -225,7 +227,7 @@ npm run test:e2e
 
 | Layer | Technology |
 |-------|-----------|
-| Framework | Next.js 15 — App Router, SSR + client components |
+| Framework | Next.js 14 — App Router, SSR + client components |
 | Language | TypeScript |
 | Blockchain interaction | wagmi v2 + viem |
 | Wallet UI | ConnectKit |

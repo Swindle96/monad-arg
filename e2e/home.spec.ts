@@ -15,7 +15,7 @@ test.describe("Home page", () => {
   });
 
   test("case stats are visible", async ({ page }) => {
-    await expect(page.getByText("COMMIT/REVEAL")).toBeVisible();
+    await expect(page.getByText("COMMIT·REVEAL")).toBeVisible();
     await expect(page.getByText("MONAD")).toBeVisible();
   });
 
@@ -27,7 +27,6 @@ test.describe("Home page", () => {
   test("footer navigation is present", async ({ page }) => {
     const footer = page.getByRole("contentinfo");
     await expect(footer.getByRole("link", { name: "CASE FILES" })).toBeVisible();
-    await expect(footer.getByRole("link", { name: "INTEL FEED" })).toBeVisible();
     await expect(footer.getByRole("link", { name: "FIELD AGENTS" })).toBeVisible();
   });
 

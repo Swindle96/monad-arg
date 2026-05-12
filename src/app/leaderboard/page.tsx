@@ -3,8 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { formatEther } from "viem";
-
-const ZERO_ADDR = "0x0000000000000000000000000000000000000000";
+import { ZERO_ADDR } from "@/lib/constants";
 
 type Entry = { addr: `0x${string}`; score: bigint; puzzlesSolved: bigint };
 
