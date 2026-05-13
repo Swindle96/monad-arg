@@ -1,5 +1,5 @@
 import { createPublicClient, http, isAddress } from "viem";
-import { monadTestnet } from "@/lib/wagmi";
+import { monadTestnet } from "@/lib/chain";
 import { playerRegistryAbi, argGameAbi, CONTRACT_ADDRESSES } from "@/lib/contracts";
 import { NextResponse } from "next/server";
 
