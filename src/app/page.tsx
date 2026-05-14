@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "CHAIN_DETECTIVE — On-Chain ARG on Monad Testnet",
-  description: "The clues are hidden in the blockchain. Solve cryptographic puzzles and claim the prize pool.",
+  description: "Decode the chain. Solve cryptographic puzzles. Claim the prize pool.",
   alternates: { canonical: "/" },
 };
 
@@ -11,7 +11,7 @@ const jsonLd = {
   "@context": "https://schema.org",
   "@type": "WebApplication",
   name: "CHAIN_DETECTIVE",
-  url: process.env.NEXT_PUBLIC_SITE_URL ?? "https://chaindetective.xyz",
+  url: process.env.NEXT_PUBLIC_SITE_URL ?? "https://monad-arg.vercel.app",
   applicationCategory: "Game",
   operatingSystem: "Web",
   description: "An on-chain alternate reality game running on Monad Testnet.",
@@ -19,34 +19,28 @@ const jsonLd = {
   offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
 };
 
-const STEPS = [
-  {
-    num: "01",
-    title: "Study the brief",
-    desc: "Each case is a cryptographic or algorithmic puzzle. Read the brief, research the answer.",
-  },
-  {
-    num: "02",
-    title: "Commit sealed",
-    desc: "Hash your answer with a random nonce and submit on-chain. The mempool sees only a hash — your answer stays hidden.",
-  },
-  {
-    num: "03",
-    title: "Wait 10 blocks",
-    desc: "Monad's 500ms blocks pass in ~5 seconds. The seal matures.",
-  },
-  {
-    num: "04",
-    title: "Break the seal",
-    desc: "Reveal your answer. The contract verifies it matches your commitment and awards the point.",
-  },
+const BOOT_LINES = [
+  { c: "var(--text-faint)", t: "$ booting cyberintrusion_v4..." },
+  { c: "var(--green)",      t: "[ OK ] kernel: linux 6.8.0-monad" },
+  { c: "var(--green)",      t: "[ OK ] mounting /chain/monad-testnet/10143" },
+  { c: "var(--green)",      t: "[ OK ] loading puzzle_set: 100 ciphers" },
+  { c: "var(--green)",      t: "[ OK ] commit-reveal protocol: ACTIVE" },
+  { c: "var(--monad)",      t: "[ OK ] rpc handshake: testnet-rpc.monad.xyz" },
+  { c: "var(--acid)",       t: "$ session ready. press connect to begin." },
+];
+
+const PROTOCOL = [
+  { phase: "01", title: "STUDY",   t: "Read the case brief. Each puzzle is a cryptographic, algorithmic, or chain-math riddle. AI assistants welcome." },
+  { phase: "02", title: "COMMIT",  t: "Hash answer + your address + random nonce → submit. The mempool only sees the hash. Your answer stays hidden." },
+  { phase: "03", title: "WAIT",    t: "Hold 10 blocks (~5s on Monad). The seal matures. Block counter ticks live in the HUD." },
+  { phase: "04", title: "REVEAL",  t: "Submit raw answer + nonce. Contract verifies the commitment, awards the point, writes you on-chain." },
 ];
 
 const STATS = [
-  { label: "PUZZLES",  value: "100"    },
-  { label: "PROTOCOL", value: "COMMIT·REVEAL" },
-  { label: "NETWORK",  value: "MONAD TESTNET" },
-  { label: "BLOCK TIME", value: "500 MS" },
+  { k: "TOTAL_CASES",  v: "100" },
+  { k: "PROTOCOL",     v: "COMMIT·REVEAL" },
+  { k: "BLOCK_TIME",   v: "500 ms" },
+  { k: "NETWORK",      v: "MONAD" },
 ];
 
 export default function Home() {
@@ -61,181 +55,165 @@ export default function Home() {
       <section
         style={{
           minHeight: "calc(100svh - 56px)",
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "space-between",
-          padding: "0 24px",
           maxWidth: "1280px",
           margin: "0 auto",
+          padding: "32px 24px 60px",
           position: "relative",
         }}
       >
-        {/* Vertical accent line */}
+        {/* Boot terminal */}
         <div
-          style={{
-            position: "absolute",
-            left: "24px",
-            top: 0,
-            bottom: 0,
-            width: "1px",
-            background: "linear-gradient(to bottom, var(--purple) 0%, transparent 60%)",
-            opacity: 0.3,
-          }}
-          aria-hidden="true"
-        />
-
-        {/* Top kicker */}
-        <div
-          style={{ paddingTop: "clamp(40px, 8vh, 80px)" }}
-          className="reveal-up"
+          className="terminal corners reveal-up reveal-up-1"
+          style={{ maxWidth: "640px", marginBottom: "clamp(32px, 6vh, 56px)" }}
         >
-          <div
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "8px",
-              padding: "6px 14px",
-              border: "1px solid var(--purple-border)",
-              background: "var(--purple-dim)",
-              marginBottom: "clamp(32px, 6vh, 64px)",
-            }}
-          >
-            <span
-              className="dot dot-green"
-              style={{ width: "6px", height: "6px" }}
-              aria-hidden="true"
-            />
-            <span
-              style={{
-                fontFamily: "var(--font-mono), monospace",
-                fontSize: "0.62rem",
-                letterSpacing: "0.24em",
-                textTransform: "uppercase",
-                color: "var(--purple)",
-              }}
-            >
-              LIVE ON MONAD TESTNET
+          <span className="corners-bl" />
+          <span className="corners-br" />
+          <div className="terminal-head">
+            <span>── [ INIT.LOG ] ───────────────</span>
+            <span className="tag tag-green">
+              <span className="dot dot-green" aria-hidden="true" />
+              LIVE
             </span>
+          </div>
+          <div className="terminal-body" style={{ padding: "16px 20px", fontSize: "0.78rem", lineHeight: 1.85 }}>
+            {BOOT_LINES.map((l, i) => (
+              <div
+                key={i}
+                className="reveal-up"
+                style={{
+                  color: l.c,
+                  animationDelay: `${0.1 + i * 0.06}s`,
+                  fontFamily: "var(--font-mono), monospace",
+                  letterSpacing: "0.02em",
+                }}
+              >
+                {l.t}
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* Giant headline */}
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
-          <h1
-            className="display-xl reveal-up reveal-up-1"
-            style={{
-              fontSize: "clamp(3.5rem, 13vw, 10rem)",
-              color: "var(--text)",
-              marginBottom: "clamp(16px, 3vh, 32px)",
-            }}
-          >
-            DECODE<br />
-            <span style={{ color: "var(--purple)" }}>THE</span><br />
-            CHAIN
-          </h1>
+        {/* Giant headline — VT323 CRT */}
+        <h1
+          className="display-xl reveal-up reveal-up-2 flicker"
+          data-text="DECODE THE CHAIN"
+          style={{
+            fontSize: "clamp(3.8rem, 14vw, 11rem)",
+            marginBottom: "clamp(24px, 4vh, 40px)",
+          }}
+        >
+          <span className="glitch" data-text="DECODE">DECODE</span><br />
+          <span style={{ color: "var(--monad)", textShadow: "0 0 12px var(--monad-glow), 0 0 30px rgba(131,110,249,0.45)" }}>
+            THE
+          </span><br />
+          <span className="glitch" data-text="CHAIN">CHAIN</span>
+        </h1>
 
-          <p
-            className="reveal-up reveal-up-2"
-            style={{
-              fontFamily: "var(--font-inter), sans-serif",
-              fontSize: "clamp(0.95rem, 2vw, 1.15rem)",
-              color: "var(--text-dim)",
-              lineHeight: 1.7,
-              maxWidth: "480px",
-              marginBottom: "clamp(32px, 5vh, 56px)",
-            }}
-          >
-            An on-chain ARG on Monad Testnet. Solve 100 cryptographic and
-            algorithmic puzzles. Every answer is sealed with a commit-reveal
-            scheme — the mempool never sees your answer.
-          </p>
+        <p
+          className="reveal-up reveal-up-3"
+          style={{
+            fontFamily: "var(--font-mono), monospace",
+            fontSize: "clamp(0.95rem, 1.8vw, 1.05rem)",
+            color: "var(--text-soft)",
+            lineHeight: 1.85,
+            maxWidth: "560px",
+            marginBottom: "clamp(32px, 5vh, 48px)",
+          }}
+        >
+          // An on-chain ARG on Monad Testnet. <br />
+          // 100 cryptographic puzzles. <br />
+          // The mempool never sees your answer.
+        </p>
 
-          <div
-            className="reveal-up reveal-up-3"
-            style={{ display: "flex", flexWrap: "wrap", gap: "12px", alignItems: "center" }}
-          >
-            <Link href="/play" className="btn">
-              OPEN CASE FILE →
-            </Link>
-            <Link href="/leaderboard" className="btn-outline">
-              FIELD AGENTS
-            </Link>
-          </div>
+        <div
+          className="reveal-up reveal-up-4"
+          style={{ display: "flex", flexWrap: "wrap", gap: "14px", alignItems: "center" }}
+        >
+          <Link href="/play" className="btn-acid">
+            ./connect →
+          </Link>
+          <Link href="/leaderboard" className="btn">
+            ls /agents
+          </Link>
+          <Link href="/explore" className="btn-outline">
+            tail -f /chain
+          </Link>
         </div>
 
         {/* Stats strip */}
         <div
-          className="reveal-up reveal-up-4"
+          className="reveal-up reveal-up-5"
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(2, 1fr)",
+            gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",
             gap: "1px",
-            background: "var(--border)",
-            borderTop: "1px solid var(--border)",
-            paddingBottom: "0",
-            marginTop: "clamp(40px, 8vh, 80px)",
+            background: "var(--border-2)",
+            border: "1px solid var(--border-2)",
+            marginTop: "clamp(48px, 8vh, 80px)",
           }}
         >
-          {STATS.map(({ label, value }) => (
+          {STATS.map(({ k, v }) => (
             <div
-              key={label}
+              key={k}
               style={{
-                background: "var(--bg)",
-                padding: "20px 24px",
+                background: "var(--surface)",
+                padding: "18px 20px",
               }}
             >
-              <p className="label" style={{ marginBottom: "6px" }}>{label}</p>
+              <p className="label" style={{ marginBottom: "6px", color: "var(--text-faint)" }}>
+                {k}
+              </p>
               <p
                 style={{
-                  fontFamily: "var(--font-display), sans-serif",
-                  fontWeight: 700,
-                  fontSize: "clamp(0.9rem, 2vw, 1.1rem)",
-                  color: "var(--text)",
-                  letterSpacing: "0.02em",
+                  fontFamily: "var(--font-crt), monospace",
+                  fontSize: "clamp(1.2rem, 2.4vw, 1.6rem)",
+                  color: "var(--green)",
+                  textShadow: "0 0 6px var(--green-glow)",
+                  letterSpacing: "0.04em",
                 }}
               >
-                {value}
+                {v}
               </p>
             </div>
           ))}
         </div>
       </section>
 
-      {/* ── HOW IT WORKS ─────────────────────────────────────── */}
+      {/* ── PROTOCOL ─────────────────────────────────────────── */}
       <section
         style={{
-          borderTop: "1px solid var(--border)",
-          padding: "clamp(48px,10vh,100px) 24px",
+          borderTop: "1px solid var(--border-2)",
+          padding: "clamp(60px, 11vh, 110px) 24px",
           maxWidth: "1280px",
           margin: "0 auto",
         }}
       >
         <div style={{ marginBottom: "clamp(32px, 6vh, 56px)" }}>
-          <p className="label-purple" style={{ marginBottom: "12px" }}>
-            HOW IT WORKS
+          <p className="label-green" style={{ marginBottom: "12px" }}>
+            // PROTOCOL.MD
           </p>
           <h2
             className="display"
-            style={{ fontSize: "clamp(2rem, 5vw, 3.2rem)" }}
+            style={{ fontSize: "clamp(2.2rem, 5vw, 3.6rem)" }}
           >
-            The protocol
+            HOW TO HACK
           </h2>
         </div>
 
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+            gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
             gap: "1px",
-            background: "var(--border)",
-            border: "1px solid var(--border)",
+            background: "var(--border-2)",
+            border: "1px solid var(--border-2)",
           }}
         >
-          {STEPS.map(({ num, title, desc }) => (
+          {PROTOCOL.map(({ phase, title, t }) => (
             <div
-              key={num}
-              className="step-card"
+              key={phase}
               style={{
+                background: "var(--surface)",
                 padding: "32px 28px",
                 position: "relative",
               }}
@@ -245,81 +223,96 @@ export default function Home() {
                   fontFamily: "var(--font-mono), monospace",
                   fontSize: "0.62rem",
                   letterSpacing: "0.22em",
-                  color: "var(--purple)",
+                  color: "var(--monad)",
+                  textShadow: "0 0 4px var(--monad-glow)",
                   display: "block",
                   marginBottom: "16px",
                 }}
               >
-                {num}
+                phase_{phase}
               </span>
               <h3
                 style={{
-                  fontFamily: "var(--font-display), sans-serif",
-                  fontWeight: 700,
-                  fontSize: "1.1rem",
-                  color: "var(--text)",
+                  fontFamily: "var(--font-crt), monospace",
+                  fontSize: "1.8rem",
+                  color: "var(--green)",
+                  textShadow: "0 0 6px var(--green-glow)",
                   marginBottom: "12px",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.02em",
+                  letterSpacing: "0.04em",
                 }}
               >
                 {title}
               </h3>
               <p
                 style={{
-                  fontFamily: "var(--font-inter), sans-serif",
-                  fontSize: "0.875rem",
+                  fontFamily: "var(--font-mono), monospace",
+                  fontSize: "0.82rem",
                   color: "var(--text-dim)",
-                  lineHeight: 1.7,
+                  lineHeight: 1.75,
                 }}
               >
-                {desc}
+                {t}
               </p>
             </div>
           ))}
         </div>
       </section>
 
-      {/* ── CTA BLOCK ────────────────────────────────────────── */}
+      {/* ── CTA ──────────────────────────────────────────────── */}
       <section
         style={{
-          borderTop: "1px solid var(--border)",
-          padding: "clamp(48px,10vh,100px) 24px",
+          borderTop: "1px solid var(--border-2)",
+          padding: "clamp(60px, 11vh, 110px) 24px",
           maxWidth: "1280px",
           margin: "0 auto",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "flex-start",
-          gap: "32px",
         }}
       >
         <div
-          style={{
-            display: "inline-block",
-            width: "48px",
-            height: "48px",
-            background: "var(--acid)",
-            flexShrink: 0,
-          }}
-          aria-hidden="true"
-        />
-        <h2
-          className="display"
-          style={{ fontSize: "clamp(2rem, 5vw, 3.5rem)", maxWidth: "600px" }}
+          className="terminal corners"
+          style={{ padding: 0 }}
         >
-          The case is open.<br />
-          <span style={{ color: "var(--purple)" }}>Are you the detective?</span>
-        </h2>
-        <Link href="/play" className="btn-acid" style={{ fontSize: "0.8rem" }}>
-          START INVESTIGATION →
-        </Link>
+          <span className="corners-bl" />
+          <span className="corners-br" />
+          <div
+            style={{
+              padding: "clamp(40px, 7vh, 64px) clamp(28px, 4vw, 56px)",
+              display: "flex",
+              flexDirection: "column",
+              gap: "28px",
+            }}
+          >
+            <p
+              style={{
+                fontFamily: "var(--font-mono), monospace",
+                fontSize: "0.72rem",
+                color: "var(--green)",
+                letterSpacing: "0.16em",
+                textShadow: "0 0 4px var(--green-glow)",
+              }}
+            >
+              <span className="cursor">$ exec /cases/001 </span>
+            </p>
+            <h2
+              className="display"
+              style={{ fontSize: "clamp(2.2rem, 5.5vw, 4rem)", maxWidth: "740px" }}
+            >
+              THE CASE IS OPEN.<br />
+              <span style={{ color: "var(--monad)", textShadow: "0 0 10px var(--monad-glow)" }}>
+                ARE YOU THE DETECTIVE?
+              </span>
+            </h2>
+            <Link href="/play" className="btn-acid" style={{ alignSelf: "flex-start", fontSize: "0.82rem" }}>
+              ./begin →
+            </Link>
+          </div>
+        </div>
       </section>
 
       {/* ── FOOTER ───────────────────────────────────────────── */}
       <footer
         style={{
-          borderTop: "1px solid var(--border)",
-          padding: "24px",
+          borderTop: "1px solid var(--border-2)",
+          padding: "20px 24px",
           maxWidth: "1280px",
           margin: "0 auto",
           display: "flex",
@@ -332,30 +325,34 @@ export default function Home() {
         <span
           style={{
             fontFamily: "var(--font-mono), monospace",
-            fontSize: "0.65rem",
+            fontSize: "0.62rem",
             letterSpacing: "0.18em",
             color: "var(--text-faint)",
           }}
         >
-          CHAIN_DETECTIVE © 2026 · MONAD TESTNET
+          // chain_detective © 2026 · monad testnet · all rights null
         </span>
-        <nav aria-label="Footer" style={{ display: "flex", gap: "24px" }}>
+        <nav aria-label="Footer" style={{ display: "flex", gap: "20px" }}>
           {[
-            { href: "/play",        label: "CASE FILES" },
-            { href: "/leaderboard", label: "FIELD AGENTS" },
+            { href: "/play",        label: "play" },
+            { href: "/explore",     label: "explore" },
+            { href: "/leaderboard", label: "leaderboard" },
+            { href: "/privacy",     label: "privacy" },
+            { href: "/terms",       label: "terms" },
           ].map(({ href, label }) => (
             <Link
               key={href}
               href={href}
-              className="footer-link"
               style={{
                 fontFamily: "var(--font-mono), monospace",
-                fontSize: "0.65rem",
+                fontSize: "0.62rem",
                 letterSpacing: "0.18em",
-                textDecoration: "none",
+                color: "var(--text-faint)",
+                textTransform: "uppercase",
               }}
+              className="chroma"
             >
-              {label}
+              ./{label}
             </Link>
           ))}
         </nav>

@@ -10,23 +10,23 @@ type BlockData = { number: string | null; transactions: TxEntry[] };
 const mono: React.CSSProperties = { fontFamily: "var(--font-mono), monospace" };
 
 function shorten(addr: string) {
-  return `${addr.slice(0, 8)}…${addr.slice(-6)}`;
+  return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
 }
 function shortenHash(hash: string) {
-  return `${hash.slice(0, 14)}…${hash.slice(-8)}`;
+  return `${hash.slice(0, 10)}…${hash.slice(-6)}`;
 }
 
 const POLL_MS  = 3_000;
 const MAX_FEED = 60;
 
-type FeedEntry = TxEntry & { blockNumber: string };
+type FeedEntry = TxEntry & { blockNumber: string; ts: string };
 
 export default function ExplorePage() {
-  const [feed, setFeed]             = useState<FeedEntry[]>([]);
+  const [feed, setFeed]               = useState<FeedEntry[]>([]);
   const [blockNumber, setBlockNumber] = useState<string | null>(null);
-  const [error, setError]           = useState(false);
-  const [loading, setLoading]       = useState(true);
-  const mountedRef                  = useRef(true);
+  const [error, setError]             = useState(false);
+  const [loading, setLoading]         = useState(true);
+  const mountedRef                    = useRef(true);
 
   const fetchBlock = useCallback(async () => {
     try {
@@ -38,11 +38,12 @@ export default function ExplorePage() {
       setError(false);
 
       if (data.number && data.transactions.length > 0) {
-        setFeed(prev => {
-          const seen = new Set(prev.map(e => e.hash));
+        const ts = new Date().toISOString().slice(11, 19);
+        setFeed((prev) => {
+          const seen = new Set(prev.map((e) => e.hash));
           const fresh: FeedEntry[] = data.transactions
-            .filter(tx => !seen.has(tx.hash))
-            .map(tx => ({ ...tx, blockNumber: data.number! }));
+            .filter((tx) => !seen.has(tx.hash))
+            .map((tx) => ({ ...tx, blockNumber: data.number!, ts }));
           if (fresh.length === 0) return prev;
           return [...fresh, ...prev].slice(0, MAX_FEED);
         });
@@ -64,44 +65,55 @@ export default function ExplorePage() {
     };
   }, [fetchBlock]);
 
-  const gameCount = feed.filter(e => e.isGame).length;
+  const gameCount = feed.filter((e) => e.isGame).length;
 
   return (
     <div style={{ minHeight: "100vh" }}>
-
-      {/* ── STICKY SUB-HEADER ─────────────────────────────────── */}
-      <div style={{
-        position: "sticky", top: "56px", zIndex: 30,
-        background: "rgba(7,7,7,0.95)", borderBottom: "1px solid var(--border)",
-        backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
-      }}>
-        <div style={{
-          maxWidth: "1280px", margin: "0 auto", padding: "0 24px", height: "48px",
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+      {/* Sticky sub-header */}
+      <div
+        style={{
+          position: "sticky",
+          top: "56px",
+          zIndex: 30,
+          background: "rgba(5, 7, 9, 0.92)",
+          borderBottom: "1px solid var(--green-line)",
+          backdropFilter: "blur(14px)",
+          WebkitBackdropFilter: "blur(14px)",
+        }}
+      >
+        <div
+          style={{
+            maxWidth: "1280px",
+            margin: "0 auto",
+            padding: "0 24px",
+            height: "44px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
             <Link
               href="/"
-              style={{ ...mono, fontSize: "0.68rem", letterSpacing: "0.16em", color: "var(--text-faint)", textDecoration: "none", transition: "color 150ms", display: "flex", alignItems: "center", minHeight: "44px" }}
-              onMouseEnter={e => (e.currentTarget.style.color = "var(--text)")}
-              onMouseLeave={e => (e.currentTarget.style.color = "var(--text-faint)")}
+              style={{ ...mono, fontSize: "0.68rem", color: "var(--text-dim)", letterSpacing: "0.14em" }}
+              className="chroma"
             >
-              ← BACK
+              cd ..
             </Link>
-            <span style={{ color: "var(--border-2)", userSelect: "none" }}>|</span>
-            <span style={{ ...mono, fontSize: "0.68rem", letterSpacing: "0.16em", color: "var(--text-dim)" }}>
-              INTEL FEED
+            <span style={{ color: "var(--border-2)" }}>│</span>
+            <span style={{ ...mono, fontSize: "0.68rem", color: "var(--green)", letterSpacing: "0.14em", textShadow: "0 0 4px var(--green-glow)" }}>
+              tail -f /chain.log
             </span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
             {blockNumber && (
-              <span style={{ ...mono, fontSize: "0.60rem", letterSpacing: "0.18em", color: "var(--text-faint)" }}>
-                BLOCK <span style={{ color: "var(--purple)" }}>#{blockNumber}</span>
+              <span style={{ ...mono, fontSize: "0.60rem", color: "var(--text-dim)", letterSpacing: "0.16em" }}>
+                BLOCK <span style={{ color: "var(--monad)", textShadow: "0 0 4px var(--monad-glow)" }}>#{blockNumber}</span>
               </span>
             )}
             <div className="hidden sm:flex" style={{ alignItems: "center", gap: "8px" }}>
-              <span className="dot dot-green" style={{ width: "6px", height: "6px" }} aria-hidden="true" />
-              <span style={{ ...mono, fontSize: "0.60rem", letterSpacing: "0.20em", color: "var(--green)" }}>
+              <span className="dot dot-green" aria-hidden="true" />
+              <span style={{ ...mono, fontSize: "0.60rem", color: "var(--green)", letterSpacing: "0.18em", textShadow: "0 0 4px var(--green-glow)" }}>
                 LIVE
               </span>
             </div>
@@ -109,149 +121,209 @@ export default function ExplorePage() {
         </div>
       </div>
 
-      {/* ── MAIN ─────────────────────────────────────────────── */}
-      <div style={{ maxWidth: "1280px", margin: "0 auto", padding: "32px 24px" }}>
-
-        {/* Header */}
+      <div style={{ maxWidth: "1280px", margin: "0 auto", padding: "28px 24px 60px" }}>
         <div style={{ marginBottom: "24px" }}>
-          <p style={{ ...mono, fontSize: "0.58rem", letterSpacing: "0.22em", color: "var(--text-faint)", marginBottom: "8px" }}>
-            MONAD TESTNET — LIVE CHAIN ACTIVITY
+          <p className="label-green" style={{ marginBottom: "10px" }}>
+            // monad_testnet // live block stream
           </p>
-          <h1 className="display" style={{ fontSize: "clamp(1.8rem, 4vw, 2.8rem)", marginBottom: "12px" }}>
-            INTEL <span style={{ color: "var(--purple)" }}>FEED</span>
+          <h1
+            className="display"
+            style={{ fontSize: "clamp(2rem, 5vw, 3.2rem)", marginBottom: "12px" }}
+            data-text="INTEL FEED"
+          >
+            <span className="glitch" data-text="INTEL FEED">INTEL FEED</span>
           </h1>
-          <p style={{ fontFamily: "var(--font-inter), sans-serif", fontSize: "0.875rem", color: "var(--text-dim)", lineHeight: 1.7, maxWidth: "560px" }}>
-            Real-time block activity on Monad Testnet.{" "}
-            <span style={{ color: "var(--purple)" }}>Highlighted</span>{" "}
-            transactions interact with CHAIN_DETECTIVE contracts.
+          <p style={{ ...mono, fontSize: "0.84rem", color: "var(--text-soft)", lineHeight: 1.75, maxWidth: "580px" }}>
+            // real-time transaction stream from monad testnet.<br />
+            // <span style={{ color: "var(--monad)", textShadow: "0 0 4px var(--monad-glow)" }}>highlighted</span> entries are cyberintrusion contract calls.
           </p>
         </div>
 
         {/* Stats */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "1px", marginBottom: "20px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "1px", background: "var(--border-2)", border: "1px solid var(--border-2)", marginBottom: "18px" }}>
           {[
-            { label: "TRANSACTIONS SEEN", value: String(feed.length) },
-            { label: "GAME INTERACTIONS", value: String(gameCount) },
-            { label: "REFRESH RATE",      value: "3s" },
-          ].map(({ label, value }) => (
-            <div key={label} style={{
-              padding: "14px 20px",
-              background: "var(--surface)", border: "1px solid var(--border)",
-            }}>
-              <p style={{ ...mono, fontSize: "0.56rem", letterSpacing: "0.20em", color: "var(--text-faint)", marginBottom: "6px" }}>{label}</p>
-              <p style={{ ...mono, fontSize: "1rem", color: "var(--text)" }}>{value}</p>
+            { k: "TX_SEEN",    v: String(feed.length) },
+            { k: "GAME_CALLS", v: String(gameCount) },
+            { k: "POLL_RATE",  v: "3s" },
+          ].map(({ k, v }) => (
+            <div key={k} style={{ padding: "14px 20px", background: "var(--surface)" }}>
+              <p className="label" style={{ marginBottom: "6px" }}>{k}</p>
+              <p style={{ ...mono, fontSize: "1rem", color: "var(--green)", textShadow: "0 0 4px var(--green-glow)" }} className="tabular-nums">{v}</p>
             </div>
           ))}
         </div>
 
-        {/* Feed table */}
-        <div style={{ background: "var(--surface)", border: "1px solid var(--border)", overflow: "hidden" }}>
-
-          {/* Terminal bar */}
-          <div style={{
-            display: "flex", alignItems: "center", justifyContent: "space-between",
-            padding: "12px 20px", background: "var(--raised)", borderBottom: "1px solid var(--border)",
-          }}>
-            <span style={{ ...mono, fontSize: "0.60rem", letterSpacing: "0.22em", color: "var(--text-faint)" }}>
-              TRANSACTION STREAM
+        {/* Feed terminal */}
+        <div className="terminal corners">
+          <span className="corners-bl" />
+          <span className="corners-br" />
+          <div className="terminal-head">
+            <span>── [ TX_STREAM ] ─────────────</span>
+            <span style={{ ...mono, fontSize: "0.56rem", letterSpacing: "0.18em", color: "var(--text-dim)" }}>
+              max={MAX_FEED}
             </span>
-            <div style={{ display: "flex", gap: "6px" }} aria-hidden="true">
-              {["var(--red)", "var(--orange)", "var(--acid)"].map((c, i) => (
-                <span key={i} style={{ width: "8px", height: "8px", borderRadius: "50%", background: c, opacity: 0.5 }} />
-              ))}
-            </div>
           </div>
 
           {loading ? (
-            <div style={{ padding: "48px 24px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <span style={{ ...mono, fontSize: "0.68rem", letterSpacing: "0.18em", color: "var(--text-faint)" }}>
-                ESTABLISHING CONNECTION…
+            <div style={{ padding: "48px 24px", display: "flex", alignItems: "center", justifyContent: "center", gap: "12px" }}>
+              <span className="ascii-spinner" style={{ color: "var(--green)", fontSize: "1rem" }} />
+              <span style={{ ...mono, fontSize: "0.78rem", letterSpacing: "0.16em", color: "var(--text-dim)" }}>
+                establishing connection…
               </span>
             </div>
           ) : error ? (
             <div style={{ padding: "48px 24px", textAlign: "center" }}>
-              <p style={{ ...mono, fontSize: "0.68rem", color: "var(--red)", letterSpacing: "0.16em" }}>RPC UNAVAILABLE</p>
-              <p style={{ ...mono, fontSize: "0.60rem", color: "var(--text-faint)", marginTop: "8px" }}>Retrying…</p>
+              <p style={{ ...mono, fontSize: "0.78rem", color: "var(--red)", letterSpacing: "0.16em", textShadow: "0 0 4px var(--red-glow)" }}>
+                [ERR] RPC UNAVAILABLE
+              </p>
+              <p style={{ ...mono, fontSize: "0.62rem", color: "var(--text-faint)", marginTop: "8px" }}>retrying…</p>
             </div>
           ) : feed.length === 0 ? (
             <div style={{ padding: "48px 24px", textAlign: "center" }}>
-              <p style={{ ...mono, fontSize: "0.68rem", color: "var(--text-faint)", letterSpacing: "0.16em" }}>
-                WAITING FOR TRANSACTIONS…
+              <p style={{ ...mono, fontSize: "0.78rem", color: "var(--text-faint)", letterSpacing: "0.16em" }}>
+                <span className="cursor">{"// waiting for transactions"}</span>
               </p>
             </div>
           ) : (
             <div role="feed" aria-label="Live transaction feed" aria-live="polite" aria-atomic="false">
               {/* Column headers */}
-              <div style={{
-                display: "grid",
-                gridTemplateColumns: "minmax(0,1.4fr) minmax(0,1fr) minmax(0,1fr) auto",
-                gap: "0 16px",
-                padding: "8px 20px",
-                borderBottom: "1px solid var(--border)",
-              }}>
-                {["TX HASH", "FROM", "TO", "BLOCK"].map(h => (
-                  <span key={h} style={{ ...mono, fontSize: "0.56rem", letterSpacing: "0.18em", color: "var(--text-faint)" }}>{h}</span>
+              <div
+                className="hidden sm:grid"
+                style={{
+                  gridTemplateColumns: "70px 1.4fr 1fr 1fr 90px",
+                  gap: "12px",
+                  padding: "8px 20px",
+                  borderBottom: "1px solid var(--green-line)",
+                  background: "var(--bg-deep)",
+                }}
+              >
+                {["TIME", "TX_HASH", "FROM", "TO", "BLOCK"].map((h) => (
+                  <span
+                    key={h}
+                    style={{
+                      ...mono,
+                      fontSize: "0.54rem",
+                      letterSpacing: "0.20em",
+                      color: "var(--green)",
+                      textShadow: "0 0 3px var(--green-glow)",
+                    }}
+                  >
+                    {h}
+                  </span>
                 ))}
               </div>
 
-              {feed.map(entry => (
+              {feed.map((entry) => (
                 <div
                   key={entry.hash}
+                  className="hidden sm:grid"
                   style={{
-                    display: "grid",
-                    gridTemplateColumns: "minmax(0,1.4fr) minmax(0,1fr) minmax(0,1fr) auto",
-                    gap: "0 16px",
-                    padding: "11px 20px",
+                    gridTemplateColumns: "70px 1.4fr 1fr 1fr 90px",
+                    gap: "12px",
+                    padding: "9px 20px",
                     borderBottom: "1px solid var(--border)",
-                    background: entry.isGame ? "rgba(155,127,252,0.04)" : "transparent",
+                    background: entry.isGame ? "rgba(131, 110, 249, 0.08)" : "transparent",
                     alignItems: "center",
                   }}
                 >
+                  <span style={{ ...mono, fontSize: "0.62rem", color: "var(--text-faint)" }} className="tabular-nums">
+                    {entry.ts}
+                  </span>
                   <a
                     href={`${EXPLORER_URL}/${entry.hash}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     style={{
-                      ...mono, fontSize: "0.68rem",
-                      color: entry.isGame ? "var(--purple)" : "var(--text-dim)",
-                      textDecoration: "none",
-                      overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                      ...mono,
+                      fontSize: "0.66rem",
+                      color: entry.isGame ? "var(--monad)" : "var(--text-dim)",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                      textShadow: entry.isGame ? "0 0 3px var(--monad-glow)" : "none",
                     }}
+                    className="chroma"
                   >
                     {shortenHash(entry.hash)} ↗
                   </a>
-                  <span style={{ ...mono, fontSize: "0.68rem", color: "var(--text-faint)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  <span style={{ ...mono, fontSize: "0.66rem", color: "var(--text-dim)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {entry.from ? shorten(entry.from) : "—"}
                   </span>
-                  <span style={{ ...mono, fontSize: "0.68rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: "6px" }}>
-                    <span style={{ color: entry.isGame ? "var(--acid)" : "var(--text-faint)" }}>
-                      {entry.to ? shorten(entry.to) : "CONTRACT CREATE"}
+                  <span style={{ ...mono, fontSize: "0.66rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: "6px" }}>
+                    <span style={{ color: entry.isGame ? "var(--green)" : "var(--text-faint)", textShadow: entry.isGame ? "0 0 3px var(--green-glow)" : "none" }}>
+                      {entry.to ? shorten(entry.to) : "CONTRACT_CREATE"}
                     </span>
                     {entry.isGame && (
-                      <span style={{ ...mono, fontSize: "0.50rem", letterSpacing: "0.16em", color: "var(--purple)", border: "1px solid var(--purple-border)", padding: "1px 5px", flexShrink: 0 }}>
+                      <span style={{ ...mono, fontSize: "0.48rem", letterSpacing: "0.18em", color: "var(--monad)", border: "1px solid rgba(131,110,249,0.4)", padding: "1px 5px" }}>
                         GAME
                       </span>
                     )}
                   </span>
-                  <span style={{ ...mono, fontSize: "0.64rem", color: "var(--text-faint)", whiteSpace: "nowrap", textAlign: "right" }}>
+                  <span style={{ ...mono, fontSize: "0.62rem", color: "var(--text-faint)", textAlign: "right" }} className="tabular-nums">
                     #{entry.blockNumber}
                   </span>
+                </div>
+              ))}
+
+              {/* Mobile fallback */}
+              {feed.map((entry) => (
+                <div
+                  key={`m-${entry.hash}`}
+                  className="sm:hidden"
+                  style={{
+                    padding: "10px 16px",
+                    borderBottom: "1px solid var(--border)",
+                    background: entry.isGame ? "rgba(131, 110, 249, 0.08)" : "transparent",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
+                    <span style={{ ...mono, fontSize: "0.58rem", color: "var(--text-faint)" }} className="tabular-nums">
+                      {entry.ts}
+                    </span>
+                    <span style={{ ...mono, fontSize: "0.58rem", color: "var(--text-faint)" }} className="tabular-nums">
+                      #{entry.blockNumber}
+                    </span>
+                    {entry.isGame && (
+                      <span style={{ ...mono, fontSize: "0.50rem", letterSpacing: "0.16em", color: "var(--monad)", border: "1px solid rgba(131,110,249,0.4)", padding: "1px 5px" }}>
+                        GAME
+                      </span>
+                    )}
+                  </div>
+                  <a
+                    href={`${EXPLORER_URL}/${entry.hash}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      ...mono,
+                      fontSize: "0.66rem",
+                      color: entry.isGame ? "var(--monad)" : "var(--text)",
+                      display: "block",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {shortenHash(entry.hash)} ↗
+                  </a>
+                  <p style={{ ...mono, fontSize: "0.62rem", color: "var(--text-dim)", marginTop: "2px" }}>
+                    {entry.from ? shorten(entry.from) : "—"} → {entry.to ? shorten(entry.to) : "CREATE"}
+                  </p>
                 </div>
               ))}
             </div>
           )}
         </div>
 
-        {/* Footer note */}
-        <p style={{ ...mono, fontSize: "0.58rem", letterSpacing: "0.12em", color: "var(--text-faint)", marginTop: "16px", lineHeight: 1.8 }}>
-          Transaction calldata is not displayed to protect active puzzle commitments.{" "}
+        <p style={{ ...mono, fontSize: "0.62rem", letterSpacing: "0.12em", color: "var(--text-faint)", marginTop: "16px", lineHeight: 1.8 }}>
+          // calldata not shown — protects active puzzle commitments.{" "}
           <a
             href="https://testnet.monadexplorer.com"
             target="_blank"
             rel="noopener noreferrer"
-            style={{ color: "var(--text-dim)", textDecoration: "none" }}
+            style={{ color: "var(--text-dim)" }}
+            className="chroma"
           >
-            View full details on Monad Explorer ↗
+            full details ↗ monadexplorer
           </a>
         </p>
       </div>

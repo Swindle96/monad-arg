@@ -6,27 +6,27 @@ import { ConnectKitButton } from "connectkit";
 import { useEffect, useState } from "react";
 
 const NAV_LINKS = [
-  { href: "/play",        label: "CASE FILES",   code: "01" },
-  { href: "/explore",     label: "INTEL FEED",   code: "02" },
-  { href: "/leaderboard", label: "FIELD AGENTS", code: "03" },
+  { href: "/play",        label: "play",        code: "01" },
+  { href: "/explore",     label: "explore",     code: "02" },
+  { href: "/leaderboard", label: "leaderboard", code: "03" },
 ];
 
 export default function Navbar() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
-  // Close mobile menu on route change so the overlay doesn't outlive its context.
+  // Close on route change
   useEffect(() => { setOpen(false); }, [pathname]);
 
-  // Lock body scroll + listen for Escape while the mobile menu is open.
+  // Body scroll lock + Escape for mobile drawer
   useEffect(() => {
     if (!open) return;
-    const prevOverflow = document.body.style.overflow;
+    const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
     window.addEventListener("keydown", onKey);
     return () => {
-      document.body.style.overflow = prevOverflow;
+      document.body.style.overflow = prev;
       window.removeEventListener("keydown", onKey);
     };
   }, [open]);
@@ -38,10 +38,11 @@ export default function Navbar() {
           position: "sticky",
           top: 0,
           zIndex: 40,
-          background: "rgba(7,7,7,0.92)",
-          borderBottom: "1px solid var(--border)",
-          backdropFilter: "blur(20px)",
-          WebkitBackdropFilter: "blur(20px)",
+          background: "rgba(5, 7, 9, 0.88)",
+          borderBottom: "1px solid var(--green-line)",
+          backdropFilter: "blur(14px)",
+          WebkitBackdropFilter: "blur(14px)",
+          boxShadow: "0 0 18px rgba(0,255,65,0.08), inset 0 -1px 0 rgba(0,255,65,0.15)",
         }}
       >
         <div
@@ -55,106 +56,91 @@ export default function Navbar() {
             justifyContent: "space-between",
           }}
         >
-          {/* Logo */}
+          {/* Brand — green ASCII logo + CD label */}
           <Link
             href="/"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "10px",
-              textDecoration: "none",
-            }}
+            style={{ display: "flex", alignItems: "center", gap: "12px" }}
+            aria-label="CHAIN_DETECTIVE home"
           >
-            <div
+            <span
+              aria-hidden="true"
               style={{
-                width: "28px",
-                height: "28px",
-                background: "var(--purple)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexShrink: 0,
+                fontFamily: "var(--font-mono), monospace",
+                fontSize: "1.1rem",
+                fontWeight: 700,
+                color: "var(--green)",
+                textShadow: "0 0 6px var(--green-glow)",
+                letterSpacing: "0.04em",
               }}
             >
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-                <circle cx="6" cy="6" r="4" stroke="#fff" strokeWidth="1.5" />
-                <line x1="9" y1="9" x2="13" y2="13" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" />
-              </svg>
-            </div>
+              &gt;_
+            </span>
             <span
               style={{
-                fontFamily: "var(--font-display), sans-serif",
+                fontFamily: "var(--font-mono), monospace",
                 fontWeight: 700,
-                fontSize: "0.92rem",
-                letterSpacing: "0.06em",
-                color: "var(--text)",
+                fontSize: "0.86rem",
+                letterSpacing: "0.18em",
+                color: "var(--green)",
+                textShadow: "0 0 4px var(--green-glow)",
                 textTransform: "uppercase",
               }}
             >
-              CHAIN_DETECTIVE
+              chain<span style={{ color: "var(--monad)", textShadow: "0 0 4px var(--monad-glow)" }}>_</span>detective
             </span>
           </Link>
 
-          {/* Desktop nav */}
+          {/* Desktop nav — prompt style */}
           <div
             className="hidden sm:flex"
-            style={{ alignItems: "center", gap: "2px" }}
+            style={{ alignItems: "center", gap: "6px" }}
           >
+            <span
+              style={{
+                fontFamily: "var(--font-mono), monospace",
+                fontSize: "0.66rem",
+                color: "var(--text-faint)",
+                letterSpacing: "0.16em",
+                marginRight: "4px",
+              }}
+              aria-hidden="true"
+            >
+              cd@detective:~$
+            </span>
             {NAV_LINKS.map(({ href, label, code }) => {
               const active = pathname === href;
               return (
                 <Link
                   key={href}
                   href={href}
+                  className="chroma"
                   style={{
                     display: "flex",
                     alignItems: "center",
                     gap: "6px",
-                    padding: "0 16px",
-                    height: "36px",
+                    padding: "0 12px",
+                    height: "34px",
                     fontFamily: "var(--font-mono), monospace",
-                    fontSize: "0.68rem",
-                    letterSpacing: "0.14em",
-                    textTransform: "uppercase",
-                    textDecoration: "none",
-                    color: active ? "var(--text)" : "var(--text-dim)",
-                    background: active ? "var(--surface)" : "transparent",
-                    border: active ? "1px solid var(--border-2)" : "1px solid transparent",
+                    fontSize: "0.72rem",
+                    letterSpacing: "0.12em",
+                    color: active ? "var(--green)" : "var(--text-dim)",
+                    background: active ? "var(--green-dim)" : "transparent",
+                    border: `1px solid ${active ? "var(--green)" : "transparent"}`,
+                    textShadow: active ? "0 0 5px var(--green-glow)" : "none",
                     transition: "color 150ms, background 150ms, border-color 150ms",
                   }}
-                  onMouseEnter={e => {
-                    if (!active) {
-                      e.currentTarget.style.color = "var(--text)";
-                    }
-                  }}
-                  onMouseLeave={e => {
-                    if (!active) {
-                      e.currentTarget.style.color = "var(--text-dim)";
-                    }
-                  }}
                 >
-                  <span style={{ color: active ? "var(--purple)" : "var(--text-faint)", fontSize: "0.56rem" }}>
-                    {code}
+                  <span style={{ color: active ? "var(--monad)" : "var(--text-ghost)", fontSize: "0.56rem" }}>
+                    [{code}]
                   </span>
-                  {label}
-                  {active && (
-                    <span
-                      style={{
-                        width: "4px",
-                        height: "4px",
-                        borderRadius: "50%",
-                        background: "var(--acid)",
-                      }}
-                      aria-hidden="true"
-                    />
-                  )}
+                  ./{label}
                 </Link>
               );
             })}
           </div>
 
-          {/* Right: wallet + burger */}
-          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          {/* Right — wallet + burger */}
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             <ConnectKitButton />
             <button
               className="sm:hidden"
@@ -162,9 +148,9 @@ export default function Navbar() {
               aria-label="Open navigation"
               aria-expanded={open}
               style={{
-                background: "none",
-                border: "1px solid var(--border-2)",
-                padding: "8px",
+                background: "transparent",
+                border: "1px solid var(--green-line)",
+                padding: "0",
                 cursor: "pointer",
                 display: "flex",
                 flexDirection: "column",
@@ -173,12 +159,19 @@ export default function Navbar() {
                 justifyContent: "center",
                 width: "36px",
                 height: "36px",
+                color: "var(--green)",
               }}
             >
-              {[1, 2, 3].map(i => (
+              {[1, 2, 3].map((i) => (
                 <span
                   key={i}
-                  style={{ width: "16px", height: "1.5px", background: "var(--text-dim)", display: "block" }}
+                  style={{
+                    width: "16px",
+                    height: "1.5px",
+                    background: "var(--green)",
+                    boxShadow: "0 0 4px var(--green-glow)",
+                    display: "block",
+                  }}
                   aria-hidden="true"
                 />
               ))}
@@ -187,7 +180,7 @@ export default function Navbar() {
         </div>
       </nav>
 
-      {/* Mobile menu */}
+      {/* Mobile drawer */}
       {open && (
         <div
           className="sm:hidden"
@@ -198,8 +191,9 @@ export default function Navbar() {
             position: "fixed",
             inset: 0,
             zIndex: 50,
-            background: "rgba(7,7,7,0.98)",
-            backdropFilter: "blur(24px)",
+            background: "rgba(2, 5, 10, 0.96)",
+            backdropFilter: "blur(20px)",
+            WebkitBackdropFilter: "blur(20px)",
             display: "flex",
             flexDirection: "column",
           }}
@@ -211,43 +205,53 @@ export default function Navbar() {
               justifyContent: "space-between",
               padding: "0 24px",
               height: "56px",
-              borderBottom: "1px solid var(--border)",
+              borderBottom: "1px solid var(--green-line)",
             }}
           >
             <span
               style={{
-                fontFamily: "var(--font-display), sans-serif",
+                fontFamily: "var(--font-mono), monospace",
                 fontWeight: 700,
-                fontSize: "0.88rem",
-                letterSpacing: "0.06em",
-                color: "var(--text)",
+                fontSize: "0.86rem",
+                letterSpacing: "0.18em",
+                color: "var(--green)",
+                textShadow: "0 0 4px var(--green-glow)",
+                textTransform: "uppercase",
               }}
             >
-              CHAIN_DETECTIVE
+              chain_detective
             </span>
             <button
               onClick={() => setOpen(false)}
               aria-label="Close navigation"
               style={{
-                background: "none",
-                border: "1px solid var(--border-2)",
+                background: "transparent",
+                border: "1px solid var(--green-line)",
                 cursor: "pointer",
                 width: "36px",
                 height: "36px",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                color: "var(--text-dim)",
+                color: "var(--green)",
               }}
             >
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-                <line x1="2" y1="2" x2="12" y2="12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                <line x1="12" y1="2" x2="2" y2="12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-              </svg>
+              ✕
             </button>
           </div>
 
           <nav style={{ flex: 1, display: "flex", flexDirection: "column", padding: "24px 0" }}>
+            <p
+              style={{
+                padding: "0 24px 12px",
+                fontFamily: "var(--font-mono), monospace",
+                fontSize: "0.66rem",
+                color: "var(--text-faint)",
+                letterSpacing: "0.16em",
+              }}
+            >
+              cd@detective:~$ ls /routes/
+            </p>
             {NAV_LINKS.map(({ href, label, code }) => {
               const active = pathname === href;
               return (
@@ -258,28 +262,32 @@ export default function Navbar() {
                   style={{
                     display: "flex",
                     alignItems: "center",
-                    gap: "16px",
-                    padding: "20px 24px",
+                    gap: "14px",
+                    padding: "18px 24px",
                     borderBottom: "1px solid var(--border)",
-                    borderLeft: active ? "2px solid var(--acid)" : "2px solid transparent",
-                    background: active ? "var(--surface)" : "transparent",
-                    textDecoration: "none",
+                    borderLeft: active ? "2px solid var(--green)" : "2px solid transparent",
+                    background: active ? "var(--green-dim)" : "transparent",
                   }}
                 >
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.58rem", color: "var(--text-faint)" }}>
-                    {code}
+                  <span
+                    style={{
+                      fontFamily: "var(--font-mono), monospace",
+                      fontSize: "0.58rem",
+                      color: "var(--monad)",
+                      textShadow: "0 0 4px var(--monad-glow)",
+                    }}
+                  >
+                    [{code}]
                   </span>
                   <span
                     style={{
-                      fontFamily: "var(--font-display), sans-serif",
-                      fontWeight: 600,
-                      fontSize: "1.1rem",
-                      letterSpacing: "0.04em",
-                      color: active ? "var(--text)" : "var(--text-dim)",
-                      textTransform: "uppercase",
+                      fontFamily: "var(--font-crt), monospace",
+                      fontSize: "1.5rem",
+                      color: active ? "var(--green)" : "var(--text)",
+                      textShadow: active ? "0 0 6px var(--green-glow)" : "none",
                     }}
                   >
-                    {label}
+                    ./{label}
                   </span>
                 </Link>
               );
